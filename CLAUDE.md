@@ -1,0 +1,49 @@
+# CaseHub IoT
+
+## Project Type
+
+type: java
+
+## Repository Role
+
+Foundation IoT device abstraction layer for the CaseHub ecosystem. Provides typed device class hierarchy, provider SPIs, and platform implementations for Home Assistant and OpenHAB. Consumed by application-tier repos (casehub-life, future property management, elder care) — never modified by them.
+
+**Design spec:** `docs/superpowers/specs/2026-06-05-iot-foundation-design.md`  
+**Research:** Available in `casehubio/parent` — `docs/superpowers/research/2026-06-05-home-automation-research.md`
+
+## Build Commands
+
+```bash
+# Build all modules
+mvn --batch-mode install
+
+# Publish to GitHub Packages (CI only — requires GITHUB_TOKEN)
+mvn --batch-mode deploy -DskipTests
+```
+
+## Module Structure
+
+| Module | Artifact | Purpose |
+|--------|----------|---------|
+| `iot-api` | `casehub-iot-api` | Core SPIs and typed device class hierarchy — **public API, semver discipline** |
+| `iot-homeassistant` | `casehub-iot-homeassistant` | Home Assistant provider (REST + WebSocket) and HA supplement types |
+| `iot-openhab` | `casehub-iot-openhab` | OpenHAB provider (REST + SSE, semantic model) and OpenHAB supplement types |
+| `iot-testing` | `casehub-iot-testing` | MockDeviceProvider, fixture devices, TestStateChangePublisher — test scope only |
+| `iot-bridge` | `casehub-iot-bridge` | Lightweight bridge runtime for cloud/hybrid deployment mode |
+
+## Key Rules
+
+- `casehub-iot-api` is a **public API surface**. No breaking changes without a major version bump. Community automations in casehub-life and beyond depend on it.
+- Vendor supplement types (HA, OpenHAB) extend common types only for fields that have no cross-vendor equivalent. Common interface first, supplement last resort.
+- Device class vocabulary is aligned with the Matter Device Type Library.
+- `iot-testing` is never a compile or runtime dependency — test scope only.
+- The bridge module has no domain logic — pure event forwarding and command relay.
+
+## Cross-Repo Conventions
+
+Protocols shared across all modules live in the **casehub garden** (`../garden/docs/protocols/`). Do not write protocol files in this repo.
+
+## Work Tracking
+
+**Issue tracking:** enabled  
+**GitHub repo:** casehubio/casehub-iot
