@@ -7,7 +7,7 @@
 **Consumed by:** casehub-life (Layer 9), future property management, elder care apps
 **Depends on:** none
 **Prefix:** IOT
-**Status:** Not started. Chapters C1–C5 scoped. No implementation yet.
+**Status:** C1 complete. Chapters C2–C5 scoped.
 
 ---
 
@@ -469,7 +469,7 @@ This preserves OpenHAB's field-level precision and makes HA produce the same gra
 
 | Journey | Description | Chapters | Status |
 |---|---|---|---|
-| IoT Device Abstraction | From bare scaffold to deployable, tested, multi-platform device integration layer | 5 | Not started |
+| IoT Device Abstraction | From bare scaffold to deployable, tested, multi-platform device integration layer | 5 | In progress |
 
 ```mermaid
 flowchart LR
@@ -478,7 +478,7 @@ flowchart LR
   C3 --> C4["C4: OpenHAB\n+ L4"]
   C4 --> C5["C5: Bridge\n+ L6"]
 
-  style C1 fill:#D3D3D3,color:#000
+  style C1 fill:#90EE90,color:#000
   style C2 fill:#D3D3D3,color:#000
   style C3 fill:#D3D3D3,color:#000
   style C4 fill:#D3D3D3,color:#000
@@ -491,7 +491,7 @@ flowchart LR
 
 | # | Chapter | Journey | Layers touched | Delta summary | Status |
 |---|---|---|---|---|---|
-| 1 | Core API | IoT Device Abstraction | L1, L2 | High, High | 🔲 |
+| 1 | Core API | IoT Device Abstraction | L1, L2 | High, High | ✅ |
 | 2 | Test Infrastructure | IoT Device Abstraction | + L5 | High | 🔲 |
 | 3 | Home Assistant | IoT Device Abstraction | + L3 | High | 🔲 |
 | 4 | OpenHAB | IoT Device Abstraction | + L4 | High | 🔲 |
@@ -524,8 +524,8 @@ L1 and L2 appear in C1–C4: foundational — real platform data in C3/C4 may su
 
 ### Chapter 1 — Core API
 
-**Journey:** IoT Device Abstraction | **Sequence:** 1 of 5 | **Status:** 🔲
-**Issues:** #1
+**Journey:** IoT Device Abstraction | **Sequence:** 1 of 5 | **Status:** ✅
+**Delivered:** 2026-06-07 | **Issues:** #1
 
 **What this delivers**
 
