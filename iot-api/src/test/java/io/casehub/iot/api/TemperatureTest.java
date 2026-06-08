@@ -40,4 +40,26 @@ class TemperatureTest {
         var b = new Temperature(BigDecimal.valueOf(20), Temperature.TemperatureUnit.CELSIUS);
         assertThat(a).isEqualTo(b);
     }
+
+    @Test
+    void equalityIsScaleInsensitive() {
+        var a = new Temperature(new BigDecimal("21"), Temperature.TemperatureUnit.CELSIUS);
+        var b = new Temperature(new BigDecimal("21.0"), Temperature.TemperatureUnit.CELSIUS);
+        assertThat(a).isEqualTo(b);
+        assertThat(a.hashCode()).isEqualTo(b.hashCode());
+    }
+
+    @Test
+    void differentValueNotEqual() {
+        var a = new Temperature(new BigDecimal("21"), Temperature.TemperatureUnit.CELSIUS);
+        var b = new Temperature(new BigDecimal("22"), Temperature.TemperatureUnit.CELSIUS);
+        assertThat(a).isNotEqualTo(b);
+    }
+
+    @Test
+    void differentUnitNotEqual() {
+        var a = new Temperature(new BigDecimal("100"), Temperature.TemperatureUnit.CELSIUS);
+        var b = new Temperature(new BigDecimal("100"), Temperature.TemperatureUnit.FAHRENHEIT);
+        assertThat(a).isNotEqualTo(b);
+    }
 }

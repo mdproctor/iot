@@ -11,6 +11,17 @@ public record Temperature(BigDecimal value, TemperatureUnit unit) {
         Objects.requireNonNull(unit, "unit");
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Temperature other)) return false;
+        return unit == other.unit && value.compareTo(other.value) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(unit, value.stripTrailingZeros());
+    }
+
     public enum TemperatureUnit { CELSIUS, FAHRENHEIT }
 
     public Temperature toCelsius() {
