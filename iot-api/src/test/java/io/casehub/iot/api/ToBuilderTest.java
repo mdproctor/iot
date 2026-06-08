@@ -148,4 +148,27 @@ class ToBuilderTest {
         assertThat(copy.energy()).isEqualByComparingTo(new BigDecimal("50"));
         assertThat(copy).isInstanceOf(PowerSensor.class);
     }
+
+    @Test
+    void lockDeviceToBuilderModifyLocked() {
+        var original = LockDevice.builder()
+            .deviceId("lk1").deviceClass(DeviceClass.LOCK).label("Lock")
+            .available(true).lastUpdated(NOW).tenancyId("t1").locked(true).build();
+        LockDevice unlocked = original.toBuilder().locked(false).build();
+        assertThat(unlocked.isLocked()).isFalse();
+        assertThat(unlocked.deviceId()).isEqualTo("lk1");
+        assertThat(unlocked).isInstanceOf(LockDevice.class);
+    }
+
+    @Test
+    void coverDeviceToBuilderModifyPosition() {
+        var original = CoverDevice.builder()
+            .deviceId("cv1").deviceClass(DeviceClass.COVER).label("Cover")
+            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .position(0).moving(false).build();
+        CoverDevice opened = original.toBuilder().position(100).build();
+        assertThat(opened.position()).isEqualTo(100);
+        assertThat(opened.isMoving()).isFalse();
+        assertThat(opened).isInstanceOf(CoverDevice.class);
+    }
 }

@@ -152,4 +152,28 @@ class CapabilitiesTest {
         assertThat(caps).containsEntry(PowerSensor.CAP_ENERGY, new BigDecimal("50"));
         assertThat(caps).hasSize(3);
     }
+
+    @Test
+    void lockDeviceCapabilities() {
+        var device = LockDevice.builder()
+            .deviceId("lk1").deviceClass(DeviceClass.LOCK).label("Lock")
+            .available(true).lastUpdated(NOW).tenancyId("t1").locked(true).build();
+        var caps = device.capabilities();
+        assertThat(caps).containsEntry(DeviceEntity.CAP_AVAILABLE, true);
+        assertThat(caps).containsEntry(LockDevice.CAP_LOCKED, true);
+        assertThat(caps).hasSize(2);
+    }
+
+    @Test
+    void coverDeviceCapabilities() {
+        var device = CoverDevice.builder()
+            .deviceId("cv1").deviceClass(DeviceClass.COVER).label("Cover")
+            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .position(75).moving(false).build();
+        var caps = device.capabilities();
+        assertThat(caps).containsEntry(DeviceEntity.CAP_AVAILABLE, true);
+        assertThat(caps).containsEntry(CoverDevice.CAP_POSITION, 75);
+        assertThat(caps).containsEntry(CoverDevice.CAP_MOVING, false);
+        assertThat(caps).hasSize(3);
+    }
 }
