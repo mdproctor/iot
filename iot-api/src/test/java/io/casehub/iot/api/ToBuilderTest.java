@@ -33,4 +33,40 @@ class ToBuilderTest {
         assertThat(modified.deviceId()).isEqualTo("sw1");
         assertThat(modified).isInstanceOf(SwitchDevice.class);
     }
+
+    @Test
+    void lightDeviceToBuilderRoundTrip() {
+        var original = LightDevice.builder()
+            .deviceId("l1").deviceClass(DeviceClass.LIGHT).label("Light")
+            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .on(true).brightness(200).colorTemp(4000).build();
+        var copy = original.toBuilder().build();
+        assertThat(copy.deviceId()).isEqualTo("l1");
+        assertThat(copy.isOn()).isTrue();
+        assertThat(copy.brightness()).hasValue(200);
+        assertThat(copy.colorTemp()).hasValue(4000);
+        assertThat(copy).isInstanceOf(LightDevice.class);
+    }
+
+    @Test
+    void lightDeviceToBuilderModifyBrightness() {
+        var original = LightDevice.builder()
+            .deviceId("l1").deviceClass(DeviceClass.LIGHT).label("Light")
+            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .on(true).brightness(200).build();
+        LightDevice modified = original.toBuilder().brightness(100).build();
+        assertThat(modified.brightness()).hasValue(100);
+        assertThat(modified.isOn()).isTrue();
+        assertThat(modified).isInstanceOf(LightDevice.class);
+    }
+
+    @Test
+    void lightDeviceToBuilderPreservesNullOptionals() {
+        var original = LightDevice.builder()
+            .deviceId("l1").deviceClass(DeviceClass.LIGHT).label("Light")
+            .available(true).lastUpdated(NOW).tenancyId("t1").on(false).build();
+        var copy = original.toBuilder().build();
+        assertThat(copy.brightness()).isEmpty();
+        assertThat(copy.colorTemp()).isEmpty();
+    }
 }

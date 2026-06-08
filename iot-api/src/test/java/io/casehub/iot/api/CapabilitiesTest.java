@@ -56,4 +56,31 @@ class CapabilitiesTest {
             .available(true).lastUpdated(NOW).tenancyId("t1").on(false).build();
         assertThat(device.capabilities()).containsEntry(SwitchDevice.CAP_ON, false);
     }
+
+    @Test
+    void lightDeviceCapabilitiesWithAllFields() {
+        var device = LightDevice.builder()
+            .deviceId("l1").deviceClass(DeviceClass.LIGHT).label("Light")
+            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .on(true).brightness(200).colorTemp(4000).build();
+        var caps = device.capabilities();
+        assertThat(caps).containsEntry(DeviceEntity.CAP_AVAILABLE, true);
+        assertThat(caps).containsEntry(LightDevice.CAP_ON, true);
+        assertThat(caps).containsEntry(LightDevice.CAP_BRIGHTNESS, 200);
+        assertThat(caps).containsEntry(LightDevice.CAP_COLOR_TEMP, 4000);
+        assertThat(caps).hasSize(4);
+    }
+
+    @Test
+    void lightDeviceCapabilitiesNullOptionalFieldsIncludedAsNull() {
+        var device = LightDevice.builder()
+            .deviceId("l1").deviceClass(DeviceClass.LIGHT).label("Light")
+            .available(true).lastUpdated(NOW).tenancyId("t1").on(false).build();
+        var caps = device.capabilities();
+        assertThat(caps).containsKey(LightDevice.CAP_BRIGHTNESS);
+        assertThat(caps.get(LightDevice.CAP_BRIGHTNESS)).isNull();
+        assertThat(caps).containsKey(LightDevice.CAP_COLOR_TEMP);
+        assertThat(caps.get(LightDevice.CAP_COLOR_TEMP)).isNull();
+        assertThat(caps).hasSize(4);
+    }
 }
