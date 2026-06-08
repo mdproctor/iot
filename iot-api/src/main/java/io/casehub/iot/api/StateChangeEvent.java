@@ -1,6 +1,8 @@
 package io.casehub.iot.api;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -16,5 +18,25 @@ public record StateChangeEvent(
         changedCapabilities = changedCapabilities == null ? Set.of() : Set.copyOf(changedCapabilities);
         Objects.requireNonNull(occurredAt, "occurredAt");
         Objects.requireNonNull(providerId, "providerId");
+    }
+
+    public static Set<String> deriveChangedCapabilities(
+            DeviceEntity before, DeviceEntity after) {
+        if (before.getClass() != after.getClass()) {
+            throw new IllegalArgumentException(
+                "Cannot derive changed capabilities across different types: "
+                + before.getClass().getSimpleName() + " vs "
+                + after.getClass().getSimpleName());
+        }
+        Map<String, Object> capsBefore = before.capabilities();
+        Map<String, Object> capsAfter = after.capabilities();
+        Set<String> changed = new LinkedHashSet<>();
+        for (var entry : capsAfter.entrySet()) {
+            Object prev = capsBefore.get(entry.getKey());
+            if (!Objects.equals(prev, entry.getValue())) {
+                changed.add(entry.getKey());
+            }
+        }
+        return Set.copyOf(changed);
     }
 }
