@@ -479,7 +479,7 @@ flowchart LR
   C4 --> C5["C5: Bridge\n+ L6"]
 
   style C1 fill:#90EE90,color:#000
-  style C2 fill:#D3D3D3,color:#000
+  style C2 fill:#90EE90,color:#000
   style C3 fill:#D3D3D3,color:#000
   style C4 fill:#D3D3D3,color:#000
   style C5 fill:#D3D3D3,color:#000
@@ -492,7 +492,7 @@ flowchart LR
 | # | Chapter | Journey | Layers touched | Delta summary | Status |
 |---|---|---|---|---|---|
 | 1 | Core API | IoT Device Abstraction | L1, L2 | High, High | ✅ |
-| 2 | Test Infrastructure | IoT Device Abstraction | + L5 | High | 🔲 |
+| 2 | Test Infrastructure | IoT Device Abstraction | + L5 | High | ✅ |
 | 3 | Home Assistant | IoT Device Abstraction | + L3 | High | 🔲 |
 | 4 | OpenHAB | IoT Device Abstraction | + L4 | High | 🔲 |
 | 5 | Bridge | IoT Device Abstraction | + L6 | High | 🔲 |
@@ -547,17 +547,25 @@ L1 and L2 appear in C1–C4: foundational — real platform data in C3/C4 may su
 
 ### Chapter 2 — Test Infrastructure
 
-**Journey:** IoT Device Abstraction | **Sequence:** 2 of 5 | **Status:** 🔲
-**Issues:** #2
+**Journey:** IoT Device Abstraction | **Sequence:** 2 of 5 | **Status:** ✅
+**Delivered:** 2026-06-09 | **Issues:** #2
 
 **What this delivers**
 
-`iot-testing` module — MockDeviceProvider for programmatic device registration and manual StateChangeEvent firing, TestDeviceRegistry with pre-populated fixture device sets, StateChangeEventPublisher test helper that auto-derives changedCapabilities. After this chapter, downstream consumers (casehub-life) can write device-dependent tests without a live platform.
+`iot-testing` module — `MockDeviceProvider` for programmatic device registration, `MockDeviceRegistry` for unit tests without CDI, `StateChangeEventPublisher` CDI helper that auto-derives `changedCapabilities` via `StateChangeEvent.deriveChangedCapabilities()`, and `Fixtures` factory class with 10 device factory methods. Also delivers C1 API enhancements: `capabilities()` on the full device hierarchy, `toBuilder()` on all 10 concrete types, `StateChangeEvent.deriveChangedCapabilities()` static utility, and `Temperature.equals()` scale-insensitive fix. After this chapter, downstream consumers (casehub-life) can write device-dependent tests without a live platform.
+
+**Design reversals from original spec (all intentional):**
+- `TestDeviceRegistry` → `MockDeviceRegistry`: populated programmatically, no YAML loading
+- `home-standard-fixtures.yaml` → `Fixtures` Java factory class: type-safe, IDE-navigable, composable; YAML loading deferred to #8
+- `MockDeviceProvider.fireStateChange()` → removed: event firing delegated to `StateChangeEventPublisher` (CDI-free mock design)
 
 **Accountability gaps closed**
-- No way to test device-dependent code → MockDeviceProvider + TestDeviceRegistry (L5)
-- No repeatable device sets → fixture YAML (L5)
-- No test event publishing → StateChangeEventPublisher (L5)
+- No way to test device-dependent code → MockDeviceProvider + MockDeviceRegistry (L5)
+- No repeatable device sets → Fixtures Java factory class (L5)
+- No test event publishing → StateChangeEventPublisher with auto-derived changedCapabilities (L5)
+- No state transition ergonomics → toBuilder() on all 10 device types (L1)
+- No capability diffing → StateChangeEvent.deriveChangedCapabilities() (L2)
+- Availability changes not tracked → CAP_AVAILABLE in DeviceEntity.capabilities() (L1)
 
 **Layer Impact**
 
@@ -982,68 +990,84 @@ Not closed here: bridge relay (L6).
 **Participates in chapters:** C2, C3, C4
 **Architectural patterns:** Mock/Stub, Fixture Factory, Test Helper
 **Key protocols:** test-scope dependency only
-**Design refs:** `docs/superpowers/specs/2026-06-05-iot-foundation-design.md` §Testing
+**Design refs:** `docs/superpowers/specs/2026-06-08-chapter2-test-infrastructure-design.md`
 **Issues:** casehubio/casehub-iot#2
 **Navigation:** `git log --grep="#2" --oneline`
-**Blog:** 🔲
-**Improvement refs:** 🔲
-**Completed:** 🔲 pending
+**Blog:** `blog/2026-06-09-mdp02-chapter2-test-infrastructure.md`
+**Improvement refs:** casehubio/casehub-iot#8 (YAML fixture loading — deferred)
+**Completed:** 2026-06-09
 
 #### What it adds
 
-**Before:** No way to test device-dependent code without a live HA/OpenHAB instance.
-**After:** `MockDeviceProvider` for programmatic device registration and manual event firing. `TestDeviceRegistry` with pre-populated fixture device sets. `StateChangeEventPublisher` auto-derives changedCapabilities from before/after comparison.
+**Before:** No way to test device-dependent code without a live HA/OpenHAB instance. Device types had no way to expose their current capability state.
+**After:** `MockDeviceProvider` for programmatic device registration; `MockDeviceRegistry` for unit tests without CDI; `StateChangeEventPublisher` CDI helper that auto-derives changedCapabilities; `Fixtures` Java factory class with 10 device factory methods. Also delivers C1 API enhancements: `capabilities()` on the full device type hierarchy, `toBuilder()` on all 10 concrete device types, `StateChangeEvent.deriveChangedCapabilities()` static utility, and `Temperature.equals()` scale-insensitive fix.
 
-- **MockDeviceProvider** — `addDevice(DeviceEntity)`, `fireStateChange(before, after)`, `setStatus(ProviderStatus)` — programmatic control for tests
-- **TestDeviceRegistry** — pre-populated from `home-standard-fixtures.yaml`; devices available immediately without calling `discover()`
-- **StateChangeEventPublisher** — `publish(before, after)` derives changedCapabilities automatically by comparing field values; fires via CDI `Event.fireAsync()`
+- **MockDeviceProvider** — `addDevice()`, `removeDevice()`, `clear()`, `setStatus()`, `setDispatchResult()`, `dispatchedCommands()` — CDI-free POJO; event firing is `StateChangeEventPublisher`'s concern
+- **MockDeviceRegistry** — `addDevice()`, `addDevices()`, `clear()` — for unit tests that don't need a CDI container; `refresh()` is a no-op (populated programmatically)
+- **StateChangeEventPublisher** — `@ApplicationScoped`; `publish(before, after, providerId)` returns `CompletionStage<StateChangeEvent>`; call `.toCompletableFuture().join()` before asserting
+- **Fixtures** — 10 static factory methods (one per DeviceClass); `standardHome()` returns all 10; each call returns a fresh instance
+- **`DeviceEntity.capabilities()`** — concrete base returning `{CAP_AVAILABLE: boolean}` as mutable `LinkedHashMap`; subclasses call `super.capabilities()` and add their CAP_* fields
+- **`DeviceEntity.toBuilder()`** — NOT declared on abstract base; each concrete subclass returns its own typed builder; AbstractBuilder types use `new Builder()`
+- **`StateChangeEvent.deriveChangedCapabilities(before, after)`** — same-type precondition enforced; diffs capabilities() maps using `Objects.equals()` (scale-insensitive via Temperature.equals() fix)
 
-Not closed here: real platform integration (L3/L4), bridge (L6).
+Not closed here: real platform integration (L3/L4), bridge (L6), YAML fixture loading (#8).
 
 #### Accountability gaps closed
 
 | Gap | What breaks without it | Closed by |
 |---|---|---|
 | Device-dependent tests require live platform | CI pipeline needs HA/OH; flaky, slow, infrastructure-heavy | MockDeviceProvider — tests run without network or platform |
-| No repeatable device sets | Each test constructs devices ad-hoc; inconsistent | TestDeviceRegistry + fixture YAML |
-| Manual changedCapabilities assembly | Tests must compute changedCapabilities by hand; error-prone | StateChangeEventPublisher auto-derives from before/after comparison |
+| No repeatable device sets | Each test constructs devices ad-hoc; inconsistent | Fixtures Java factory class (10 methods + standardHome()) |
+| Manual changedCapabilities assembly | Tests must compute by hand; error-prone | StateChangeEvent.deriveChangedCapabilities() — also used by production providers |
+| State transitions require full rebuild | Providers and tests rebuild entire device from scratch to change one field | toBuilder() on all 10 concrete types |
+| Availability transitions not in changedCapabilities | Device going offline silently produces empty changedCapabilities set | CAP_AVAILABLE in DeviceEntity.capabilities() base |
 
-#### Key files (planned)
+#### Key files (delivered)
 
-- `iot-testing/src/main/java/io/casehub/iot/testing/MockDeviceProvider.java` — implements DeviceProvider; programmatic device registration, manual event firing
-- `iot-testing/src/main/java/io/casehub/iot/testing/TestDeviceRegistry.java` — implements DeviceRegistry; pre-populated from fixture YAML
-- `iot-testing/src/main/java/io/casehub/iot/testing/StateChangeEventPublisher.java` — test helper: publish(before, after) with auto-derived changedCapabilities
-- `iot-testing/src/main/resources/fixtures/home-standard-fixtures.yaml` — standard home device set
+- `iot-testing/src/main/java/io/casehub/iot/testing/MockDeviceProvider.java`
+- `iot-testing/src/main/java/io/casehub/iot/testing/MockDeviceRegistry.java`
+- `iot-testing/src/main/java/io/casehub/iot/testing/StateChangeEventPublisher.java`
+- `iot-testing/src/main/java/io/casehub/iot/testing/Fixtures.java`
 
 #### Key wiring
 
 - **Test-scope only** — `<scope>test</scope>` in consumer pom.xml. Never a compile or runtime dependency.
-- **MockDeviceProvider is not a CDI bean by default** — tests instantiate directly or register as a CDI bean via `@QuarkusTestResource`. This prevents conflict with real providers in integration tests.
-- **StateChangeEventPublisher requires CDI Event injection** — operates within a `@QuarkusTest` CDI container to fire real async events.
+- **MockDeviceProvider CDI pattern** — wrap in an `@ApplicationScoped @Alternative @Priority(1)` inner static class in `@QuarkusTest`. Populate devices in the constructor (called once by CDI), not in `discover()` (called on each `registry.refresh()`).
+- **StateChangeEventPublisher join guarantee** — CDI spec guarantees the `CompletionStage` from `fireAsync()` completes only after all `@ObservesAsync` handlers finish. Always call `.toCompletableFuture().join()` before asserting.
+- **@QuarkusTest state bleed** — MockDeviceProvider and MockDeviceRegistry are not thread-safe; clear both in `@BeforeEach` to prevent state bleed across test methods.
+- **Jandex indexing** — iot-testing JAR must contain `META-INF/jandex.idx` (generated by `io.smallrye:jandex-maven-plugin 3.3.1`) for Quarkus CDI to discover StateChangeEventPublisher in consumer test classpaths.
+- **capabilities() allocation** — always allocates a fresh `LinkedHashMap`; never caches. Supplement types (C3/C4) call `super.capabilities()` and add their entries to the returned map.
 
 #### Architectural decisions
 
-- **Why fixture YAML rather than fixture Java builders:** YAML is readable, editable, and platform-agnostic. A non-developer can inspect and modify fixture device sets. Java builders are code — they require compilation and Java knowledge. YAML fixtures serve both test setup and documentation.
-- **Why auto-derived changedCapabilities:** Manual changedCapabilities assembly is error-prone and diverges from production behavior where providers compute it automatically. The test helper mirrors production by comparing field values.
+- **Why Java factories over YAML fixtures:** `iot-testing` has a developer-only audience — engineers writing `@QuarkusTest` code. Java factories give type safety, IDE navigation, and natural `toBuilder()` integration. YAML would need a parser dependency and a schema, and would not handle vendor supplement types (C3/C4) cleanly. YAML loading remains available as a future addition (#8).
+- **Why CDI-free MockDeviceProvider:** Mixing CDI concerns into the mock prevents instantiation in plain Java unit tests. Event firing is the responsibility of `StateChangeEventPublisher`. Keeping the mock CDI-free gives consumers flexibility.
+- **Why capabilities() returns mutable LinkedHashMap:** Vendor supplement types (C3/C4) must be able to add their CAP_* fields to the map via `super.capabilities()`. An immutable return would break the supplement chain.
+- **Why toBuilder() is not declared on DeviceEntity:** An abstract declaration would return `Builder<?, ?>`, making `build()` return `DeviceEntity` — losing the concrete type. Each concrete subclass declares its own typed `toBuilder()`.
 
 #### Pattern introduced
 
-**Mock provider + fixture registry + auto-deriving event publisher:** Three test utilities covering the three SPI integration points: device discovery (mock provider), device lookup (fixture registry), state change observation (event publisher).
+**Self-describing device hierarchy + CDI-free POJO mocks + auto-deriving changedCapabilities:** Device types expose their capability map; mocks are plain Java; event publisher uses CDI `fireAsync()` + join for race-free test assertions.
 
 #### Pattern anchor
 
-- `MockDeviceProvider.fireStateChange()` — programmatic state change triggering
-- `StateChangeEventPublisher.publish()` — auto-deriving changedCapabilities
+- `DeviceEntity.capabilities()` + `StateChangeEvent.deriveChangedCapabilities()` — capability diffing chain
+- `StateChangeEventPublisher.publish()` + `.toCompletableFuture().join()` — race-free async event test pattern
 
 #### Gotchas
 
-🔲 at C2 close.
+- **Temperature.equals() is scale-sensitive in records** — Java records auto-generate `equals()` delegating to `BigDecimal.equals()`. `new BigDecimal("21") != new BigDecimal("21.0")`. Fix: override `equals()` with `compareTo()` and `hashCode()` with `stripTrailingZeros()`. The existing test used `BigDecimal.valueOf()` (always scale 0) and masked the bug. See GE-20260609-8f14bb.
+- **Jandex index required for CDI discovery of library JARs** — without `META-INF/jandex.idx` in the iot-testing JAR, CDI silently ignores `StateChangeEventPublisher`. No error, no warning — injection fails at test startup.
 
 #### Pattern to replicate
 
-1. Create a mock provider implementing the provider SPI with methods for programmatic device registration (`addDevice`), manual state change firing (`fireStateChange`), and status control (`setStatus`).
-2. Create a fixture registry pre-populated from a YAML file containing a standard device set for the domain.
-3. Create a test event publisher that accepts before/after entity pairs, auto-derives the changed field set by reflection or explicit comparison, and fires via CDI Event.fireAsync().
+1. Add `capabilities()` to the domain entity base class returning a fresh mutable map with cross-cutting state fields (e.g. `available`). Subclasses call `super.capabilities()` and add their own.
+2. Add `toBuilder()` to each concrete entity subclass returning the concrete typed builder. Do not declare it on the abstract base.
+3. Add `deriveChangedCapabilities(before, after)` as a static utility on the event record, enforcing same-type precondition and diffing the capability maps with `Objects.equals()`.
+4. Create a CDI-free mock provider with programmatic device map + command log + configurable status.
+5. Create a fixture factory class with one static method per domain classification, each returning a fresh instance. Use a fixed tenant and deterministic timestamp for reproducibility.
+6. Create a `@ApplicationScoped` event publisher that constructs the event via the record constructor (not a convenience factory) and calls `Event.fireAsync()`. Return the `CompletionStage` — callers join on it.
+7. Add Jandex Maven plugin to the testing module so CDI discovers beans when the JAR is on a consumer's test classpath.
 4. Package as a separate module with no framework dependency beyond CDI (consumers add the dependency at test scope).
 5. Document that the mock provider is not a CDI bean by default — tests register it explicitly to avoid conflicts with real providers.
 
