@@ -6,8 +6,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 class ExtensibleDeviceTest {
 
@@ -27,14 +26,12 @@ class ExtensibleDeviceTest {
                 .colorTemp(370)
                 .build();
 
-        assertTrue(device.isOn());
-        assertTrue(device.brightness().isPresent());
-        assertEquals(200, device.brightness().get());
-        assertTrue(device.colorTemp().isPresent());
-        assertEquals(370, device.colorTemp().get());
-        assertEquals("isOn", LightDevice.CAP_ON);
-        assertEquals("brightness", LightDevice.CAP_BRIGHTNESS);
-        assertEquals("colorTemp", LightDevice.CAP_COLOR_TEMP);
+        assertThat(device.isOn()).isTrue();
+        assertThat(device.brightness()).hasValue(200);
+        assertThat(device.colorTemp()).hasValue(370);
+        assertThat(LightDevice.CAP_ON).isEqualTo("isOn");
+        assertThat(LightDevice.CAP_BRIGHTNESS).isEqualTo("brightness");
+        assertThat(LightDevice.CAP_COLOR_TEMP).isEqualTo("colorTemp");
     }
 
     @Test
@@ -48,9 +45,9 @@ class ExtensibleDeviceTest {
                 .on(false)
                 .build();
 
-        assertFalse(device.isOn());
-        assertTrue(device.brightness().isEmpty());
-        assertTrue(device.colorTemp().isEmpty());
+        assertThat(device.isOn()).isFalse();
+        assertThat(device.brightness()).isEmpty();
+        assertThat(device.colorTemp()).isEmpty();
     }
 
     @Test
@@ -64,7 +61,7 @@ class ExtensibleDeviceTest {
                 .on(true)
                 .build();
 
-        assertInstanceOf(DeviceEntity.class, device);
+        assertThat(device).isInstanceOf(DeviceEntity.class);
     }
 
     @Test
@@ -83,19 +80,19 @@ class ExtensibleDeviceTest {
                 .mode(ThermostatMode.HEAT)
                 .build();
 
-        assertEquals(current, device.currentTemperature());
-        assertEquals(target, device.targetTemperature());
-        assertEquals(ThermostatMode.HEAT, device.mode());
-        assertEquals("currentTemperature", ThermostatDevice.CAP_CURRENT_TEMPERATURE);
-        assertEquals("targetTemperature", ThermostatDevice.CAP_TARGET_TEMPERATURE);
-        assertEquals("mode", ThermostatDevice.CAP_MODE);
+        assertThat(device.currentTemperature()).isEqualTo(current);
+        assertThat(device.targetTemperature()).isEqualTo(target);
+        assertThat(device.mode()).isEqualTo(ThermostatMode.HEAT);
+        assertThat(ThermostatDevice.CAP_CURRENT_TEMPERATURE).isEqualTo("currentTemperature");
+        assertThat(ThermostatDevice.CAP_TARGET_TEMPERATURE).isEqualTo("targetTemperature");
+        assertThat(ThermostatDevice.CAP_MODE).isEqualTo("mode");
     }
 
     @Test
     void thermostatDeviceRequiresAllFields() {
         Temperature temp = new Temperature(new BigDecimal("21.5"), Temperature.TemperatureUnit.CELSIUS);
 
-        assertThrows(NullPointerException.class, () -> {
+        assertThatThrownBy(() ->
             ThermostatDevice.builder()
                     .deviceId(UUID.randomUUID().toString())
                     .label("Main Thermostat")
@@ -104,10 +101,10 @@ class ExtensibleDeviceTest {
                     .tenancyId("test-tenant")
                     .targetTemperature(temp)
                     .mode(ThermostatMode.HEAT)
-                    .build();
-        });
+                    .build()
+        ).isInstanceOf(NullPointerException.class);
 
-        assertThrows(NullPointerException.class, () -> {
+        assertThatThrownBy(() ->
             ThermostatDevice.builder()
                     .deviceId(UUID.randomUUID().toString())
                     .label("Main Thermostat")
@@ -116,10 +113,10 @@ class ExtensibleDeviceTest {
                     .tenancyId("test-tenant")
                     .currentTemperature(temp)
                     .mode(ThermostatMode.HEAT)
-                    .build();
-        });
+                    .build()
+        ).isInstanceOf(NullPointerException.class);
 
-        assertThrows(NullPointerException.class, () -> {
+        assertThatThrownBy(() ->
             ThermostatDevice.builder()
                     .deviceId(UUID.randomUUID().toString())
                     .label("Main Thermostat")
@@ -128,8 +125,8 @@ class ExtensibleDeviceTest {
                     .tenancyId("test-tenant")
                     .currentTemperature(temp)
                     .targetTemperature(temp)
-                    .build();
-        });
+                    .build()
+        ).isInstanceOf(NullPointerException.class);
     }
 
     @Test
@@ -143,8 +140,8 @@ class ExtensibleDeviceTest {
                 .locked(true)
                 .build();
 
-        assertTrue(device.isLocked());
-        assertEquals("isLocked", LockDevice.CAP_LOCKED);
+        assertThat(device.isLocked()).isTrue();
+        assertThat(LockDevice.CAP_LOCKED).isEqualTo("isLocked");
     }
 
     @Test
@@ -158,7 +155,7 @@ class ExtensibleDeviceTest {
                 .locked(false)
                 .build();
 
-        assertInstanceOf(DeviceEntity.class, device);
+        assertThat(device).isInstanceOf(DeviceEntity.class);
     }
 
     @Test
@@ -173,10 +170,10 @@ class ExtensibleDeviceTest {
                 .moving(false)
                 .build();
 
-        assertEquals(75, device.position());
-        assertFalse(device.isMoving());
-        assertEquals("position", CoverDevice.CAP_POSITION);
-        assertEquals("isMoving", CoverDevice.CAP_MOVING);
+        assertThat(device.position()).isEqualTo(75);
+        assertThat(device.isMoving()).isFalse();
+        assertThat(CoverDevice.CAP_POSITION).isEqualTo("position");
+        assertThat(CoverDevice.CAP_MOVING).isEqualTo("isMoving");
     }
 
     @Test
@@ -191,7 +188,7 @@ class ExtensibleDeviceTest {
                 .moving(true)
                 .build();
 
-        assertInstanceOf(DeviceEntity.class, device);
+        assertThat(device).isInstanceOf(DeviceEntity.class);
     }
 
     // Simulates a vendor supplement — e.g. HomeAssistantLight extends LightDevice.
