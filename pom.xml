@@ -34,11 +34,11 @@
     </dependencyManagement>
 
     <modules>
-        <module>iot-api</module>
-        <module>iot-homeassistant</module>
-        <module>iot-openhab</module>
-        <module>iot-testing</module>
-        <module>iot-bridge</module>
+        <module>api</module>
+        <module>homeassistant</module>
+        <module>openhab</module>
+        <module>testing</module>
+        <module>bridge</module>
     </modules>
 
 </project>
