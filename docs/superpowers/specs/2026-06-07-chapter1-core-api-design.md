@@ -1,7 +1,7 @@
 # Chapter 1 — Core API Design Spec
 
 **Date:** 2026-06-07
-**Issue:** casehubio/casehub-iot#1
+**Issue:** casehubio/iot#1
 **Module:** `iot-api` (`casehub-iot-api`)
 **Foundation spec:** `docs/superpowers/specs/2026-06-05-iot-foundation-design.md`
 

@@ -1,6 +1,6 @@
 # Chapter 2 — Test Infrastructure Design
 
-**Issue:** casehubio/casehub-iot#2
+**Issue:** casehubio/iot#2
 **Modules:** iot-api (C1 API enhancements), iot-testing (new C2 code)
 **Depends on:** C1 Core API (complete)
 

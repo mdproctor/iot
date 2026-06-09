@@ -70,4 +70,4 @@ Protocols shared across all modules live in the **casehub garden** (`../garden/d
 ## Work Tracking
 
 **Issue tracking:** enabled  
-**GitHub repo:** casehubio/casehub-iot
+**GitHub repo:** casehubio/iot

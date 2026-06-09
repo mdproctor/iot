@@ -44,7 +44,7 @@ PREFIX: `IOT` (issues only — foundation-tier modules use issue refs directly)
 
 | Artifact type | Format | Example | Where it lives |
 |---|---|---|---|
-| Issue | `#NNN` or `casehubio/casehub-iot#NNN` | `#1`, `casehubio/casehub-iot#1` | GitHub Issues |
+| Issue | `#NNN` or `casehubio/iot#NNN` | `#1`, `casehubio/iot#1` | GitHub Issues |
 | Garden entry | `GE-YYYYMMDD-XXXXXX` | `GE-20260606-a1b2c3` | `~/.hortora/garden/` |
 | Protocol | `PP-YYYYMMDD-XXXXXX` | `PP-20260606-d4e5f6` | `casehub-parent/docs/protocols/` |
 | ADR | `ADR-NNNN` | `ADR-0001` | `docs/adr/` |
@@ -660,7 +660,7 @@ L1 and L2 appear in C1–C4: foundational — real platform data in C3/C4 may su
 **Architectural patterns:** Type Hierarchy (abstract base + typed subclasses), Value Objects (Temperature)
 **Key protocols:** Matter Device Type Library alignment
 **Design refs:** `docs/superpowers/specs/2026-06-05-iot-foundation-design.md` §Core Abstractions — DeviceEntity hierarchy
-**Issues:** casehubio/casehub-iot#1
+**Issues:** casehubio/iot#1
 **Navigation:** `git log --grep="#1" --oneline`
 **Blog:** 🔲
 **Improvement refs:** 🔲
@@ -742,7 +742,7 @@ Not closed here: provider contract (L2), platform integration (L3/L4), test infr
 **Architectural patterns:** Hexagonal (SPI ports), CDI Instance<> discovery, Async Events, DefaultBean
 **Key protocols:** CDI `Event.fireAsync()` / `@ObservesAsync`, `@Any Instance<>` discovery
 **Design refs:** `docs/superpowers/specs/2026-06-05-iot-foundation-design.md` §DeviceProvider SPI, §DeviceRegistry SPI, §StateChangeEvent
-**Issues:** casehubio/casehub-iot#1
+**Issues:** casehubio/iot#1
 **Navigation:** `git log --grep="#1" --oneline`
 **Blog:** 🔲
 **Improvement refs:** 🔲
@@ -826,7 +826,7 @@ Not closed here: actual platform providers (L3/L4), test mocks (L5), bridge rela
 **Architectural patterns:** REST Client, WebSocket Client, Strategy (entity mapping), Reconnection (exponential backoff)
 **Key protocols:** HA REST API v2, HA WebSocket API
 **Design refs:** `docs/superpowers/specs/2026-06-05-iot-foundation-design.md` §Home Assistant provider
-**Issues:** casehubio/casehub-iot#3
+**Issues:** casehubio/iot#3
 **Navigation:** `git log --grep="#3" --oneline`
 **Blog:** 🔲
 **Improvement refs:** 🔲
@@ -908,7 +908,7 @@ Not closed here: OpenHAB support (L4), bridge relay (L6).
 **Architectural patterns:** REST Client, SSE Stream, State Cache with Coalescing, Semantic Model Mapping
 **Key protocols:** OpenHAB REST API, OpenHAB SSE API, OpenHAB Semantic Model
 **Design refs:** `docs/superpowers/specs/2026-06-05-iot-foundation-design.md` §OpenHAB provider
-**Issues:** casehubio/casehub-iot#4
+**Issues:** casehubio/iot#4
 **Navigation:** `git log --grep="#4" --oneline`
 **Blog:** 🔲
 **Improvement refs:** 🔲
@@ -991,10 +991,10 @@ Not closed here: bridge relay (L6).
 **Architectural patterns:** Mock/Stub, Fixture Factory, Test Helper
 **Key protocols:** test-scope dependency only
 **Design refs:** `docs/superpowers/specs/2026-06-08-chapter2-test-infrastructure-design.md`
-**Issues:** casehubio/casehub-iot#2
+**Issues:** casehubio/iot#2
 **Navigation:** `git log --grep="#2" --oneline`
 **Blog:** `blog/2026-06-09-mdp02-chapter2-test-infrastructure.md`
-**Improvement refs:** casehubio/casehub-iot#8 (YAML fixture loading — deferred)
+**Improvement refs:** casehubio/iot#8 (YAML fixture loading — deferred)
 **Completed:** 2026-06-09
 
 #### What it adds
@@ -1079,7 +1079,7 @@ Not closed here: real platform integration (L3/L4), bridge (L6), YAML fixture lo
 **Architectural patterns:** Event Relay, WebSocket Client, Deployment Mode Selection
 **Key protocols:** WebSocket for cloud relay; TLS + auth token
 **Design refs:** `docs/superpowers/specs/2026-06-05-iot-foundation-design.md` §Deployment Modes
-**Issues:** casehubio/casehub-iot#5
+**Issues:** casehubio/iot#5
 **Navigation:** `git log --grep="#5" --oneline`
 **Blog:** 🔲
 **Improvement refs:** 🔲

@@ -1,8 +1,8 @@
 # casehub-iot C3 — Home Assistant Provider Design Spec (rev 5)
 **Date:** 2026-06-09
-**Issue:** casehubio/casehub-iot#3
+**Issue:** casehubio/iot#3
 **Depends on:** C1 (`api/`), C2 (`testing/`)
-**Deferred:** casehubio/casehub-iot#9 (MockReactiveDeviceProvider), casehubio/parent#211 (PLATFORM.md)
+**Deferred:** casehubio/iot#9 (MockReactiveDeviceProvider), casehubio/parent#211 (PLATFORM.md)
 
 ---
 
@@ -690,9 +690,9 @@ homeassistant/src/main/java/io/casehub/iot/homeassistant/
 
 ## Out of Scope
 
-- `MockReactiveDeviceProvider` — casehubio/casehub-iot#9
+- `MockReactiveDeviceProvider` — casehubio/iot#9
 - PLATFORM.md — casehubio/parent#211
 - OpenHAB provider — C4
 - Bridge runtime — C5 (determines if `runtime/` module needed)
 - HA entity `unique_id` stable deviceId — entity registry API; accepted risk per §12
-- YAML fixture loading — casehubio/casehub-iot#8
+- YAML fixture loading — casehubio/iot#8
