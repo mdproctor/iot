@@ -7,7 +7,7 @@
 **Consumed by:** casehub-life (Layer 9), future property management, elder care apps
 **Depends on:** none
 **Prefix:** IOT
-**Status:** C1 complete. Chapters C2–C5 scoped.
+**Status:** C1–C4 complete. C5 scoped.
 
 ---
 
@@ -493,8 +493,8 @@ flowchart LR
 |---|---|---|---|---|---|
 | 1 | Core API | IoT Device Abstraction | L1, L2 | High, High | ✅ |
 | 2 | Test Infrastructure | IoT Device Abstraction | + L5 | High | ✅ |
-| 3 | Home Assistant | IoT Device Abstraction | + L3 | High | 🔲 |
-| 4 | OpenHAB | IoT Device Abstraction | + L4 | High | 🔲 |
+| 3 | Home Assistant | IoT Device Abstraction | + L3 | High | ✅ |
+| 4 | OpenHAB | IoT Device Abstraction | + L4 | High | ✅ |
 | 5 | Bridge | IoT Device Abstraction | + L6 | High | 🔲 |
 
 ### Layer x Chapter Matrix
