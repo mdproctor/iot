@@ -187,7 +187,7 @@ public class OpenHabEntityMapper {
             return OpenHabLight.builder()
                     .deviceId(deviceId).deviceClass(DeviceClass.LIGHT).label(label)
                     .available(available).lastUpdated(now).tenancyId(tenancyId)
-                    .on(on).hsb(hsb)
+                    .on(on).brightness(hsb != null ? hsb.brightness().intValue() : null).hsb(hsb)
                     .build();
         }
 

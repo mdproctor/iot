@@ -114,6 +114,22 @@ class OpenHabEntityMapperTest {
         assertThat(light.isOn()).isTrue();
     }
 
+    // ---- 4a. Color item → brightness field populated from HSB ----
+
+    @Test
+    void colorItemPopulatesBrightnessFromHsb() {
+        var eq = equipment("LightBright", "Bright Light",
+                List.of("Equipment", "Lightbulb"),
+                member("Color", "LightBright_Color", "240,100,75",
+                        List.of("Point", "Control", "Switch")));
+
+        var result = mapper.mapEquipment(eq, NOW);
+
+        assertThat(result).isInstanceOf(OpenHabLight.class);
+        var light = (OpenHabLight) result;
+        assertThat(light.brightness()).hasValue(75);
+    }
+
     // ---- 5. Rollershutter position is inverted ----
 
     @Test
