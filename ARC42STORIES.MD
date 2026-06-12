@@ -664,7 +664,7 @@ L1 and L2 appear in C1–C4: foundational — real platform data in C3/C4 may su
 **Navigation:** `git log --grep="#1" --oneline`
 **Blog:** 🔲
 **Improvement refs:** 🔲
-**Completed:** 🔲 pending
+**Completed:** ✅ complete
 
 #### What it adds
 
@@ -746,7 +746,7 @@ Not closed here: provider contract (L2), platform integration (L3/L4), test infr
 **Navigation:** `git log --grep="#1" --oneline`
 **Blog:** 🔲
 **Improvement refs:** 🔲
-**Completed:** 🔲 pending
+**Completed:** ✅ complete
 
 #### What it adds
 
@@ -830,7 +830,7 @@ Not closed here: actual platform providers (L3/L4), test mocks (L5), bridge rela
 **Navigation:** `git log --grep="#3" --oneline`
 **Blog:** 🔲
 **Improvement refs:** 🔲
-**Completed:** 🔲 pending
+**Completed:** ✅ complete
 
 #### What it adds
 
@@ -912,7 +912,7 @@ Not closed here: OpenHAB support (L4), bridge relay (L6).
 **Navigation:** `git log --grep="#4" --oneline`
 **Blog:** 🔲
 **Improvement refs:** 🔲
-**Completed:** 🔲 pending
+**Completed:** ✅ complete
 
 #### What it adds
 
