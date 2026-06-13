@@ -1,0 +1,60 @@
+defaults:
+  tenancyId: default-tenant
+  lastUpdated: "2026-01-01T00:00:00Z"
+  available: true
+
+devices:
+  - type: switch
+    deviceId: switch-hallway-1
+    label: Hallway Switch
+    on: false
+
+  - type: light
+    deviceId: light-living-1
+    label: Living Room Light
+    on: false
+
+  - type: thermostat
+    deviceId: thermostat-living-1
+    label: Living Room Thermostat
+    currentTemperature: { value: 21, unit: CELSIUS }
+    targetTemperature: { value: 22, unit: CELSIUS }
+    mode: HEAT
+
+  - type: sensor
+    deviceId: sensor-outdoor-1
+    label: Outdoor Temperature
+    sensorType: TEMPERATURE
+    numericValue: 15
+    unit: C
+
+  - type: presence_sensor
+    deviceId: presence-front-1
+    label: Front Door Presence
+    present: false
+    lastSeen: "2026-01-01T00:00:00Z"
+
+  - type: power_sensor
+    deviceId: power-solar-1
+    label: Solar Panel
+    power: 3200
+
+  - type: lock
+    deviceId: lock-front-1
+    label: Front Door Lock
+    locked: true
+
+  - type: cover
+    deviceId: cover-bedroom-1
+    label: Bedroom Blinds
+    moving: false
+
+  - type: media_player
+    deviceId: media-living-1
+    label: Living Room Speaker
+    playing: false
+
+  - type: fan
+    deviceId: fan-bedroom-1
+    label: Bedroom Fan
+    on: false

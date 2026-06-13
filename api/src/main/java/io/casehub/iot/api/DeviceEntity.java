@@ -57,7 +57,7 @@ public abstract class DeviceEntity {
     }
 
     @SuppressWarnings("unchecked")
-    protected abstract static class Builder<T extends DeviceEntity, B extends Builder<T, B>> {
+    public abstract static class Builder<T extends DeviceEntity, B extends Builder<T, B>> {
         String deviceId;
         DeviceClass deviceClass;
         String label;

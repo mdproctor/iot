@@ -140,7 +140,7 @@ C4Context
 | L2 | SPI & Registry | iot-api | CDI contracts (blocking SPIs), @DefaultBean CdiDeviceRegistry |
 | L3 | Home Assistant | iot-homeassistant | REST + WebSocket provider + supplement types |
 | L4 | OpenHAB | iot-openhab | REST + SSE + semantic model + state cache + supplement types |
-| L5 | Test Harness | iot-testing | Mock provider, fixture devices, event publisher |
+| L5 | Test Harness | iot-testing | Mock provider, fixture devices (Java `Fixtures` + YAML `DeviceFixtureLoader`), `DeviceTypeHandler` SPI, event publisher |
 | L6 | Bridge | iot-bridge | Cloud relay, deployment modes |
 
 L1 and L2 both reside in `iot-api` but represent distinct architectural concerns: L1 is pure Java with zero framework imports (the vocabulary); L2 introduces CDI, Mutiny, and runtime behavior (the contracts). This mirrors the api/app split in application-tier repos at a finer grain.
@@ -186,12 +186,12 @@ C4Container
   Container_Boundary(b4, "Layer: OpenHAB (L4)") {
     Container(ohprov, "OpenHABProvider", "Quarkus CDI", "REST semantic model discovery + SSE subscription + item command dispatch")
     Container(ohcache, "State Cache", "Quarkus CDI", "Equipment-keyed device state with 50ms coalescing window")
-    Container(ohsupps, "OH Supplement Types", "Java", "OpenHABThermostatItem + OpenHABRollershutter + OpenHABColorItem")
+    Container(ohsupps, "OH Supplement Types", "Java", "OpenHabThermostat + OpenHabRollershutter + OpenHabLight")
   }
 
   Container_Boundary(b5, "Layer: Test Harness (L5)") {
-    Container(mock, "MockDeviceProvider + TestDeviceRegistry", "Java", "Programmatic device registration and manual event firing")
-    Container(fixtures, "Fixture Devices", "YAML", "home-standard-fixtures.yaml pre-built device sets")
+    Container(mock, "MockDeviceProvider + MockDeviceRegistry", "Java", "Programmatic device registration and manual event firing")
+    Container(fixtures, "Fixture Devices", "Java + YAML", "Java Fixtures factory + YAML DeviceFixtureLoader — paired authoring paths producing List<DeviceEntity>")
     Container(publisher, "StateChangeEventPublisher", "CDI", "Test helper: publish(before, after) with auto-derived changedCapabilities")
   }
 
@@ -556,7 +556,7 @@ L1 and L2 appear in C1–C4: foundational — real platform data in C3/C4 may su
 
 **Design reversals from original spec (all intentional):**
 - `TestDeviceRegistry` → `MockDeviceRegistry`: populated programmatically, no YAML loading
-- `home-standard-fixtures.yaml` → `Fixtures` Java factory class: type-safe, IDE-navigable, composable; YAML loading deferred to #8
+- `home-standard-fixtures.yaml` → `Fixtures` Java factory class: type-safe, IDE-navigable, composable; YAML loading added in #8 as a paired authoring path
 - `MockDeviceProvider.fireStateChange()` → removed: event firing delegated to `StateChangeEventPublisher` (CDI-free mock design)
 
 **Accountability gaps closed**
@@ -994,7 +994,7 @@ Not closed here: bridge relay (L6).
 **Issues:** casehubio/iot#2
 **Navigation:** `git log --grep="#2" --oneline`
 **Blog:** `blog/2026-06-09-mdp02-chapter2-test-infrastructure.md`
-**Improvement refs:** casehubio/iot#8 (YAML fixture loading — deferred)
+**Improvement refs:** casehubio/iot#8 (YAML fixture loading — implemented)
 **Completed:** 2026-06-09
 
 #### What it adds
@@ -1010,7 +1010,7 @@ Not closed here: bridge relay (L6).
 - **`DeviceEntity.toBuilder()`** — NOT declared on abstract base; each concrete subclass returns its own typed builder; AbstractBuilder types use `new Builder()`
 - **`StateChangeEvent.deriveChangedCapabilities(before, after)`** — same-type precondition enforced; diffs capabilities() maps using `Objects.equals()` (scale-insensitive via Temperature.equals() fix)
 
-Not closed here: real platform integration (L3/L4), bridge (L6), YAML fixture loading (#8).
+Not closed here: real platform integration (L3/L4), bridge (L6). YAML fixture loading (#8) shipped separately.
 
 #### Accountability gaps closed
 
@@ -1040,7 +1040,7 @@ Not closed here: real platform integration (L3/L4), bridge (L6), YAML fixture lo
 
 #### Architectural decisions
 
-- **Why Java factories over YAML fixtures:** `iot-testing` has a developer-only audience — engineers writing `@QuarkusTest` code. Java factories give type safety, IDE navigation, and natural `toBuilder()` integration. YAML would need a parser dependency and a schema, and would not handle vendor supplement types (C3/C4) cleanly. YAML loading remains available as a future addition (#8).
+- **Java and YAML as paired fixture authoring paths:** Both `Fixtures` (Java DSL) and `DeviceFixtureLoader` (YAML) produce the same `List<DeviceEntity>` canonical model. Java factories give type safety and IDE navigation; YAML gives declarative, human-readable device sets. Equivalence tests prove parity. Supplement types (HA, OH) register handlers via ServiceLoader (`<optional>true</optional>` dep on iot-testing). Added in #8.
 - **Why CDI-free MockDeviceProvider:** Mixing CDI concerns into the mock prevents instantiation in plain Java unit tests. Event firing is the responsibility of `StateChangeEventPublisher`. Keeping the mock CDI-free gives consumers flexibility.
 - **Why capabilities() returns mutable LinkedHashMap:** Vendor supplement types (C3/C4) must be able to add their CAP_* fields to the map via `super.capabilities()`. An immutable return would break the supplement chain.
 - **Why toBuilder() is not declared on DeviceEntity:** An abstract declaration would return `Builder<?, ?>`, making `build()` return `DeviceEntity` — losing the concrete type. Each concrete subclass declares its own typed `toBuilder()`.

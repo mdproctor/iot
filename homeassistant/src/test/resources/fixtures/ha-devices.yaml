@@ -1,0 +1,31 @@
+defaults:
+  tenancyId: default-tenant
+  lastUpdated: "2026-01-01T00:00:00Z"
+  available: true
+
+devices:
+  - type: homeassistant:light
+    deviceId: ha-light-1
+    label: HA RGB Light
+    on: true
+    brightness: 80
+    rgbColor: [255, 100, 50]
+    effect: colorloop
+    supportedColorModes: [rgb, color_temp]
+
+  - type: homeassistant:thermostat
+    deviceId: ha-thermo-1
+    label: HA Climate
+    currentTemperature: { value: 20, unit: CELSIUS }
+    targetTemperature: { value: 22, unit: CELSIUS }
+    mode: AUTO
+    presetMode: comfort
+    swingMode: horizontal
+    hvacAction: heating
+
+  - type: homeassistant:lock
+    deviceId: ha-lock-1
+    label: HA Smart Lock
+    locked: true
+    changedBy: user_admin
+    codeSlot: 1

@@ -28,7 +28,7 @@ mvn --batch-mode deploy -DskipTests
 | `api` | `casehub-iot-api` | Core SPIs (reactive `Uni<>`) and typed device class hierarchy — **public API, semver discipline** |
 | `homeassistant` | `casehub-iot-homeassistant` | Home Assistant provider (REST + WebSocket) and HA supplement types |
 | `openhab` | `casehub-iot-openhab` | OpenHAB provider (REST + SSE, semantic model) and OpenHAB supplement types |
-| `testing` | `casehub-iot-testing` | MockDeviceProvider, fixture devices, StateChangeEventPublisher — test scope only |
+| `testing` | `casehub-iot-testing` | MockDeviceProvider, fixture devices (Java `Fixtures` + YAML `DeviceFixtureLoader`), `DeviceTypeHandler` SPI, StateChangeEventPublisher — test scope only |
 | `bridge` | `casehub-iot-bridge` | Lightweight bridge runtime for cloud/hybrid deployment mode |
 
 ## Key Rules
@@ -36,7 +36,7 @@ mvn --batch-mode deploy -DskipTests
 - `casehub-iot-api` is a **public API surface**. No breaking changes without a major version bump. Community automations in casehub-life and beyond depend on it.
 - Vendor supplement types (HA, OpenHAB) extend common types only for fields that have no cross-vendor equivalent. Common interface first, supplement last resort.
 - Device class vocabulary is aligned with the Matter Device Type Library.
-- `iot-testing` is never a compile or runtime dependency — test scope only.
+- `iot-testing` is never a compile or runtime dependency for downstream consumers — test scope only. Provider modules (HA, OpenHAB) use `<optional>true</optional>` to compile against `DeviceTypeHandler` without propagating transitively.
 - The bridge module has no domain logic — pure event forwarding and command relay.
 
 ## Cross-Repo Conventions

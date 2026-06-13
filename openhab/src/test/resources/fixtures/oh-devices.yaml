@@ -1,0 +1,28 @@
+defaults:
+  tenancyId: default-tenant
+  lastUpdated: "2026-01-01T00:00:00Z"
+  available: true
+
+devices:
+  - type: openhab:light
+    deviceId: oh-light-1
+    label: OH Color Light
+    on: true
+    brightness: 90
+    hsb: { hue: 120, saturation: 100, brightness: 90 }
+
+  - type: openhab:thermostat
+    deviceId: oh-thermo-1
+    label: OH Climate
+    currentTemperature: { value: 19, unit: CELSIUS }
+    targetTemperature: { value: 21, unit: CELSIUS }
+    mode: HEAT
+    heatingDemand: 80
+    coolingDemand: 0
+
+  - type: openhab:cover
+    deviceId: oh-cover-1
+    label: OH Rollershutter
+    position: 25
+    moving: false
+    upDown: STOP

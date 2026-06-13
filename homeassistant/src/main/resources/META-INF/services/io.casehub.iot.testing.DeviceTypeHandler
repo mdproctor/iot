@@ -1,0 +1,3 @@
+io.casehub.iot.homeassistant.testing.HomeAssistantLightHandler
+io.casehub.iot.homeassistant.testing.HomeAssistantThermostatHandler
+io.casehub.iot.homeassistant.testing.HomeAssistantLockHandler

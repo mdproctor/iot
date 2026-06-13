@@ -1,0 +1,3 @@
+io.casehub.iot.openhab.testing.OpenHabLightHandler
+io.casehub.iot.openhab.testing.OpenHabThermostatHandler
+io.casehub.iot.openhab.testing.OpenHabRollershutterHandler
