@@ -439,7 +439,89 @@ class OpenHabEntityMapperTest {
         assertThat(therm.mode()).isEqualTo(ThermostatMode.OFF);
     }
 
-    // ---- 22. Device ID is equipment name ----
+    // ---- 22. HVAC Control+Switch OFF overrides mode to OFF ----
+
+    @Test
+    void hvacControlSwitchOffOverridesModeToOff() {
+        var eq = equipment("ThermostatSwitchOff", "Switched Off Thermostat",
+                List.of("Equipment", "HVAC"),
+                member("Number", "ThermostatSwitchOff_CurrentTemp", "20.0",
+                        List.of("Point", "Measurement", "Temperature")),
+                member("Number", "ThermostatSwitchOff_TargetTemp", "21.0",
+                        List.of("Point", "Setpoint", "Temperature")),
+                member("String", "ThermostatSwitchOff_Mode", "heat",
+                        List.of()),
+                member("Switch", "ThermostatSwitchOff_Power", "OFF",
+                        List.of("Point", "Control", "Switch")));
+
+        var result = mapper.mapEquipment(eq, NOW);
+
+        assertThat(result).isInstanceOf(ThermostatDevice.class);
+        var therm = (ThermostatDevice) result;
+        assertThat(therm.mode()).isEqualTo(ThermostatMode.OFF);
+    }
+
+    // ---- 23. HVAC Control+Switch ON uses String mode item ----
+
+    @Test
+    void hvacControlSwitchOnUsesStringModeItem() {
+        var eq = equipment("ThermostatSwitchOn", "Switched On Thermostat",
+                List.of("Equipment", "HVAC"),
+                member("Number", "ThermostatSwitchOn_CurrentTemp", "20.0",
+                        List.of("Point", "Measurement", "Temperature")),
+                member("Number", "ThermostatSwitchOn_TargetTemp", "21.0",
+                        List.of("Point", "Setpoint", "Temperature")),
+                member("String", "ThermostatSwitchOn_Mode", "cool",
+                        List.of()),
+                member("Switch", "ThermostatSwitchOn_Power", "ON",
+                        List.of("Point", "Control", "Switch")));
+
+        var result = mapper.mapEquipment(eq, NOW);
+
+        assertThat(result).isInstanceOf(ThermostatDevice.class);
+        var therm = (ThermostatDevice) result;
+        assertThat(therm.mode()).isEqualTo(ThermostatMode.COOL);
+    }
+
+    // ---- 24. Partial NULL members → still available ----
+
+    @Test
+    void partialNullMembersStillAvailable() {
+        var eq = equipment("ThermostatPartial", "Partial Thermostat",
+                List.of("Equipment", "HVAC"),
+                member("Number", "ThermostatPartial_CurrentTemp", "20.0",
+                        List.of("Point", "Measurement", "Temperature")),
+                member("Number", "ThermostatPartial_TargetTemp", "21.0",
+                        List.of("Point", "Setpoint", "Temperature")),
+                member("Number", "ThermostatPartial_Battery", "NULL",
+                        List.of("Point", "Measurement", "Level")),
+                member("String", "ThermostatPartial_Mode", "heat",
+                        List.of()));
+
+        var result = mapper.mapEquipment(eq, NOW);
+
+        assertThat(result).isNotNull();
+        assertThat(result.available()).isTrue();
+    }
+
+    // ---- 23. All members NULL/UNDEF → unavailable ----
+
+    @Test
+    void allMembersNullOrUndefMarksUnavailable() {
+        var eq = equipment("SwitchAllNull", "All Null Switch",
+                List.of("Equipment", "PowerOutlet"),
+                member("Switch", "SwitchAllNull_Toggle", "NULL",
+                        List.of("Point", "Control", "Switch")),
+                member("Switch", "SwitchAllNull_Power", "UNDEF",
+                        List.of("Point", "Status")));
+
+        var result = mapper.mapEquipment(eq, NOW);
+
+        assertThat(result).isNotNull();
+        assertThat(result.available()).isFalse();
+    }
+
+    // ---- 24. Device ID is equipment name ----
 
     @Test
     void deviceIdIsEquipmentName() {

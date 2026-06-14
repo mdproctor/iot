@@ -121,7 +121,7 @@ public class OpenHabEntityMapper {
         boolean hasHeatingOrCoolingDemand = false;
 
         for (OpenHabItemDto m : members) {
-            Set<String> mtags = tagSet(m);
+            Set<String> mtags = m.tagSet();
 
             if (mtags.contains("Measurement") && mtags.contains("Temperature")) {
                 currentTemp = parseTemperature(m);
@@ -171,7 +171,7 @@ public class OpenHabEntityMapper {
         boolean hasColorItem = false;
 
         for (OpenHabItemDto m : members) {
-            Set<String> mtags = tagSet(m);
+            Set<String> mtags = m.tagSet();
 
             if (m.type() != null && m.type().contains("Color")) {
                 hasColorItem = true;
@@ -202,7 +202,7 @@ public class OpenHabEntityMapper {
                                     Instant now, List<OpenHabItemDto> members) {
         boolean on = false;
         for (OpenHabItemDto m : members) {
-            Set<String> mtags = tagSet(m);
+            Set<String> mtags = m.tagSet();
             if (mtags.contains("Control") && mtags.contains("Switch")) {
                 on = "ON".equals(m.state());
             }
@@ -218,7 +218,7 @@ public class OpenHabEntityMapper {
                                 Instant now, List<OpenHabItemDto> members) {
         boolean locked = false;
         for (OpenHabItemDto m : members) {
-            Set<String> mtags = tagSet(m);
+            Set<String> mtags = m.tagSet();
             if (mtags.contains("Control") && mtags.contains("Switch")) {
                 locked = "ON".equals(m.state());
             }
@@ -235,7 +235,7 @@ public class OpenHabEntityMapper {
         Integer position = null;
 
         for (OpenHabItemDto m : members) {
-            Set<String> mtags = tagSet(m);
+            Set<String> mtags = m.tagSet();
             if (mtags.contains("Status") && mtags.contains("OpenState")) {
                 position = parseCoverPosition(m);
             }
@@ -263,7 +263,7 @@ public class OpenHabEntityMapper {
         Integer volume = null;
 
         for (OpenHabItemDto m : members) {
-            Set<String> mtags = tagSet(m);
+            Set<String> mtags = m.tagSet();
             if (mtags.contains("Control") && mtags.contains("SoundVolume")) {
                 volume = parseIntOrNull(m.state());
             }
@@ -280,7 +280,7 @@ public class OpenHabEntityMapper {
                               Instant now, List<OpenHabItemDto> members) {
         boolean on = false;
         for (OpenHabItemDto m : members) {
-            Set<String> mtags = tagSet(m);
+            Set<String> mtags = m.tagSet();
             if (mtags.contains("Control") && mtags.contains("Switch")) {
                 on = "ON".equals(m.state());
             }
@@ -304,7 +304,7 @@ public class OpenHabEntityMapper {
 
         BigDecimal numericValue = null;
         for (OpenHabItemDto m : members) {
-            Set<String> mtags = tagSet(m);
+            Set<String> mtags = m.tagSet();
             if (mtags.contains("Measurement") && mtags.contains("Humidity")) {
                 numericValue = parseOrNull(m.state());
                 break;
@@ -350,6 +350,14 @@ public class OpenHabEntityMapper {
 
     private ThermostatMode resolveHvacMode(List<OpenHabItemDto> members) {
         for (OpenHabItemDto m : members) {
+            Set<String> mtags = m.tagSet();
+            if (mtags.contains("Control") && mtags.contains("Switch")) {
+                if (!"ON".equals(m.state())) {
+                    return ThermostatMode.OFF;
+                }
+            }
+        }
+        for (OpenHabItemDto m : members) {
             if ("String".equals(m.type())) {
                 String combined = (nullSafe(m.name()) + " " + nullSafe(m.label())).toLowerCase(Locale.ROOT);
                 if (combined.contains("mode")) {
@@ -386,7 +394,7 @@ public class OpenHabEntityMapper {
 
         // Infer from members for generic Sensor tag
         for (OpenHabItemDto m : members) {
-            Set<String> mtags = tagSet(m);
+            Set<String> mtags = m.tagSet();
             if (mtags.contains("Measurement") && mtags.contains("Humidity")) return SensorType.HUMIDITY;
             if (mtags.contains("Measurement") && mtags.contains("Temperature")) return SensorType.TEMPERATURE;
         }
@@ -454,19 +462,16 @@ public class OpenHabEntityMapper {
     // ---- availability ----
 
     private boolean isAvailable(List<OpenHabItemDto> members) {
+        if (members.isEmpty()) return false;
         for (OpenHabItemDto m : members) {
-            if (isNullOrUndef(m.state())) {
-                return false;
+            if (!isNullOrUndef(m.state())) {
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
     // ---- utility methods ----
-
-    private static Set<String> tagSet(OpenHabItemDto item) {
-        return item.tags() != null ? new HashSet<>(item.tags()) : Set.of();
-    }
 
     private static boolean isNullOrUndef(String state) {
         return "NULL".equals(state) || "UNDEF".equals(state);

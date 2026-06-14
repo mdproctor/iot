@@ -34,6 +34,9 @@ public class OpenHabProvider implements DeviceProvider {
     @Inject OpenHabSseClient sseClient;
     @Inject OpenHabEntityMapper mapper;
 
+    /** Package-private constructor for unit tests (no CDI). */
+    OpenHabProvider() {}
+
     @PostConstruct
     void start() {
         sseClient.connect().subscribe().with(
@@ -80,7 +83,7 @@ public class OpenHabProvider implements DeviceProvider {
             .onFailure(TimeoutException.class).recoverWithItem(CommandResult.TIMEOUT);
     }
 
-    private String buildCommandValue(DeviceCommand command) {
+    String buildCommandValue(DeviceCommand command) {
         return switch (command.action()) {
             case DeviceCommand.ACTION_TURN_ON -> "ON";
             case DeviceCommand.ACTION_TURN_OFF -> "OFF";

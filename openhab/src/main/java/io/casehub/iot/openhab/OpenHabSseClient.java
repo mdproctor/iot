@@ -18,7 +18,6 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
 
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -181,7 +180,7 @@ public class OpenHabSseClient {
 
     private String findMemberWithTags(ConcurrentHashMap<String, OpenHabItemDto> members, Set<String> requiredTags) {
         for (OpenHabItemDto member : members.values()) {
-            Set<String> memberTags = tagSet(member);
+            Set<String> memberTags = member.tagSet();
             if (memberTags.containsAll(requiredTags)) {
                 return member.name();
             }
@@ -428,10 +427,6 @@ public class OpenHabSseClient {
                 yield null;
             }
         };
-    }
-
-    private static Set<String> tagSet(OpenHabItemDto item) {
-        return item.tags() != null ? new HashSet<>(item.tags()) : Set.of();
     }
 
     // ---- shutdown ----
