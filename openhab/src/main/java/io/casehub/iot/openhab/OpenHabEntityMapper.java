@@ -17,6 +17,10 @@ import java.util.*;
  * Equipment Groups: one Equipment Group with multiple member Point items maps to a single
  * DeviceEntity. The mapper receives the Equipment Group DTO with inlined members and
  * assembles fields from the Point tags on each member.</p>
+ *
+ * <p>Resolution produces a {@link ResolvedDeviceFields} instance; construction is then
+ * delegated to {@link OpenHabDeviceBuilder#build(ResolvedDeviceFields)}. This separation
+ * allows Thing-based resolution (Task 4) to reuse the same builder.</p>
  */
 @ApplicationScoped
 public class OpenHabEntityMapper {
@@ -59,6 +63,24 @@ public class OpenHabEntityMapper {
     }
 
     private DeviceEntity mapEquipmentUnsafe(OpenHabItemDto equipment, Instant now) {
+        ResolvedDeviceFields fields = resolveFromEquipment(equipment, now);
+        if (fields == null) {
+            return null;
+        }
+        return OpenHabDeviceBuilder.build(fields);
+    }
+
+    // ---- Equipment resolution ----
+
+    /**
+     * Resolves device fields from an OpenHAB Equipment Group by iterating its members
+     * and extracting values based on semantic tags.
+     *
+     * @param equipment the Equipment Group DTO with inlined members
+     * @param now       timestamp to use as lastUpdated
+     * @return resolved fields, or null if the Equipment tag is unrecognised
+     */
+    ResolvedDeviceFields resolveFromEquipment(OpenHabItemDto equipment, Instant now) {
         List<String> tags = equipment.tags() != null ? equipment.tags() : List.of();
         List<OpenHabItemDto> members = equipment.members() != null ? equipment.members() : List.of();
 
@@ -71,49 +93,36 @@ public class OpenHabEntityMapper {
             return null;
         }
 
-        return switch (deviceClass) {
-            case THERMOSTAT -> mapThermostat(deviceId, label, available, now, members, tags);
-            case LIGHT -> mapLight(deviceId, label, available, now, members);
-            case SWITCH -> mapSwitch(deviceId, label, available, now, members);
-            case LOCK -> mapLock(deviceId, label, available, now, members);
-            case COVER -> mapCover(deviceId, label, available, now, members, tags);
-            case MEDIA_PLAYER -> mapMediaPlayer(deviceId, label, available, now, members);
-            case FAN -> mapFan(deviceId, label, available, now, members);
-            case SENSOR -> mapSensor(deviceId, label, available, now, members, tags);
+        ResolvedDeviceFields.Builder b = ResolvedDeviceFields.builder()
+                .deviceId(deviceId)
+                .label(label)
+                .available(available)
+                .now(now)
+                .tenancyId(tenancyId)
+                .deviceClass(deviceClass);
+
+        switch (deviceClass) {
+            case THERMOSTAT -> resolveThermostat(b, members, tags);
+            case LIGHT -> resolveLight(b, members);
+            case SWITCH -> resolveSwitch(b, members);
+            case LOCK -> resolveLock(b, members);
+            case COVER -> resolveCover(b, members, tags);
+            case MEDIA_PLAYER -> resolveMediaPlayer(b, members);
+            case FAN -> resolveFan(b, members);
+            case SENSOR -> resolveSensor(b, members, tags);
             default -> {
                 LOG.warnf("Unhandled device class %s for equipment %s", deviceClass, deviceId);
-                yield null;
+                return null;
             }
-        };
-    }
-
-    // ---- device class resolution ----
-
-    private DeviceClass resolveDeviceClass(List<String> tags) {
-        for (String tag : tags) {
-            if ("Equipment".equals(tag)) continue;
-
-            if (HVAC_TAGS.contains(tag)) return DeviceClass.THERMOSTAT;
-            if (LIGHT_TAGS.contains(tag)) return DeviceClass.LIGHT;
-            if (SWITCH_TAGS.contains(tag)) return DeviceClass.SWITCH;
-            if ("Lock".equals(tag)) return DeviceClass.LOCK;
-            if (COVER_TAGS.contains(tag)) return DeviceClass.COVER;
-            if (MEDIA_TAGS.contains(tag)) return DeviceClass.MEDIA_PLAYER;
-            if ("Fan".equals(tag)) return DeviceClass.FAN;
-            if ("Sensor".equals(tag)) return DeviceClass.SENSOR;
-            if ("MotionDetector".equals(tag)) return DeviceClass.SENSOR;
-            if ("Battery".equals(tag)) return DeviceClass.SENSOR;
-            if ("SmokeDetector".equals(tag)) return DeviceClass.SENSOR;
         }
 
-        LOG.warnf("No recognised Equipment tag in %s — skipping", tags);
-        return null;
+        return b.build();
     }
 
-    // ---- domain mappers ----
+    // ---- field resolution by device class ----
 
-    private DeviceEntity mapThermostat(String deviceId, String label, boolean available,
-                                       Instant now, List<OpenHabItemDto> members, List<String> equipmentTags) {
+    private void resolveThermostat(ResolvedDeviceFields.Builder b,
+                                   List<OpenHabItemDto> members, List<String> equipmentTags) {
         Temperature currentTemp = null;
         Temperature targetTemp = null;
         BigDecimal heatingDemand = null;
@@ -139,42 +148,23 @@ public class OpenHabEntityMapper {
             }
         }
 
-        if (currentTemp == null) {
-            currentTemp = new Temperature(BigDecimal.ZERO, Temperature.TemperatureUnit.CELSIUS);
-        }
-        if (targetTemp == null) {
-            targetTemp = new Temperature(BigDecimal.ZERO, Temperature.TemperatureUnit.CELSIUS);
-        }
-
-        ThermostatMode mode = resolveHvacMode(members);
+        b.currentTemperature(currentTemp)
+         .targetTemperature(targetTemp)
+         .mode(resolveHvacMode(members));
 
         if (hasHeatingOrCoolingDemand) {
-            return OpenHabThermostat.builder()
-                    .deviceId(deviceId).deviceClass(DeviceClass.THERMOSTAT).label(label)
-                    .available(available).lastUpdated(now).tenancyId(tenancyId)
-                    .currentTemperature(currentTemp).targetTemperature(targetTemp).mode(mode)
-                    .heatingDemand(heatingDemand).coolingDemand(coolingDemand)
-                    .build();
+            b.heatingDemand(heatingDemand).coolingDemand(coolingDemand);
         }
-
-        return new ThermostatDevice.Builder()
-                .deviceId(deviceId).deviceClass(DeviceClass.THERMOSTAT).label(label)
-                .available(available).lastUpdated(now).tenancyId(tenancyId)
-                .currentTemperature(currentTemp).targetTemperature(targetTemp).mode(mode)
-                .build();
     }
 
-    private DeviceEntity mapLight(String deviceId, String label, boolean available,
-                                   Instant now, List<OpenHabItemDto> members) {
+    private void resolveLight(ResolvedDeviceFields.Builder b, List<OpenHabItemDto> members) {
         boolean on = false;
         OpenHabHsbType hsb = null;
-        boolean hasColorItem = false;
 
         for (OpenHabItemDto m : members) {
             Set<String> mtags = m.tagSet();
 
             if (m.type() != null && m.type().contains("Color")) {
-                hasColorItem = true;
                 hsb = parseHsb(m.state());
                 // Color item: brightness > 0 means on
                 on = hsb != null && hsb.brightness().compareTo(BigDecimal.ZERO) > 0;
@@ -183,23 +173,13 @@ public class OpenHabEntityMapper {
             }
         }
 
-        if (hasColorItem) {
-            return OpenHabLight.builder()
-                    .deviceId(deviceId).deviceClass(DeviceClass.LIGHT).label(label)
-                    .available(available).lastUpdated(now).tenancyId(tenancyId)
-                    .on(on).brightness(hsb != null ? hsb.brightness().intValue() : null).hsb(hsb)
-                    .build();
+        b.on(on);
+        if (hsb != null) {
+            b.hsb(hsb).brightness(hsb.brightness().intValue());
         }
-
-        return new LightDevice.Builder()
-                .deviceId(deviceId).deviceClass(DeviceClass.LIGHT).label(label)
-                .available(available).lastUpdated(now).tenancyId(tenancyId)
-                .on(on)
-                .build();
     }
 
-    private SwitchDevice mapSwitch(String deviceId, String label, boolean available,
-                                    Instant now, List<OpenHabItemDto> members) {
+    private void resolveSwitch(ResolvedDeviceFields.Builder b, List<OpenHabItemDto> members) {
         boolean on = false;
         for (OpenHabItemDto m : members) {
             Set<String> mtags = m.tagSet();
@@ -207,15 +187,10 @@ public class OpenHabEntityMapper {
                 on = "ON".equals(m.state());
             }
         }
-        return SwitchDevice.builder()
-                .deviceId(deviceId).deviceClass(DeviceClass.SWITCH).label(label)
-                .available(available).lastUpdated(now).tenancyId(tenancyId)
-                .on(on)
-                .build();
+        b.on(on);
     }
 
-    private LockDevice mapLock(String deviceId, String label, boolean available,
-                                Instant now, List<OpenHabItemDto> members) {
+    private void resolveLock(ResolvedDeviceFields.Builder b, List<OpenHabItemDto> members) {
         boolean locked = false;
         for (OpenHabItemDto m : members) {
             Set<String> mtags = m.tagSet();
@@ -223,61 +198,34 @@ public class OpenHabEntityMapper {
                 locked = "ON".equals(m.state());
             }
         }
-        return new LockDevice.Builder()
-                .deviceId(deviceId).deviceClass(DeviceClass.LOCK).label(label)
-                .available(available).lastUpdated(now).tenancyId(tenancyId)
-                .locked(locked)
-                .build();
+        b.locked(locked);
     }
 
-    private DeviceEntity mapCover(String deviceId, String label, boolean available,
-                                   Instant now, List<OpenHabItemDto> members, List<String> equipmentTags) {
+    private void resolveCover(ResolvedDeviceFields.Builder b,
+                              List<OpenHabItemDto> members, List<String> equipmentTags) {
         Integer position = null;
-
         for (OpenHabItemDto m : members) {
             Set<String> mtags = m.tagSet();
             if (mtags.contains("Status") && mtags.contains("OpenState")) {
                 position = parseCoverPosition(m);
             }
         }
-
         boolean isRollershutterEquipment = equipmentTags.contains("Rollershutter") || equipmentTags.contains("Blinds");
-
-        if (isRollershutterEquipment) {
-            return OpenHabRollershutter.builder()
-                    .deviceId(deviceId).deviceClass(DeviceClass.COVER).label(label)
-                    .available(available).lastUpdated(now).tenancyId(tenancyId)
-                    .position(position).moving(false)
-                    .build();
-        }
-
-        return new CoverDevice.Builder()
-                .deviceId(deviceId).deviceClass(DeviceClass.COVER).label(label)
-                .available(available).lastUpdated(now).tenancyId(tenancyId)
-                .position(position).moving(false)
-                .build();
+        b.position(position).isRollershutter(isRollershutterEquipment);
     }
 
-    private MediaPlayerDevice mapMediaPlayer(String deviceId, String label, boolean available,
-                                              Instant now, List<OpenHabItemDto> members) {
+    private void resolveMediaPlayer(ResolvedDeviceFields.Builder b, List<OpenHabItemDto> members) {
         Integer volume = null;
-
         for (OpenHabItemDto m : members) {
             Set<String> mtags = m.tagSet();
             if (mtags.contains("Control") && mtags.contains("SoundVolume")) {
                 volume = parseIntOrNull(m.state());
             }
         }
-
-        return MediaPlayerDevice.builder()
-                .deviceId(deviceId).deviceClass(DeviceClass.MEDIA_PLAYER).label(label)
-                .available(available).lastUpdated(now).tenancyId(tenancyId)
-                .volume(volume)
-                .build();
+        b.volume(volume);
     }
 
-    private FanDevice mapFan(String deviceId, String label, boolean available,
-                              Instant now, List<OpenHabItemDto> members) {
+    private void resolveFan(ResolvedDeviceFields.Builder b, List<OpenHabItemDto> members) {
         boolean on = false;
         for (OpenHabItemDto m : members) {
             Set<String> mtags = m.tagSet();
@@ -285,19 +233,15 @@ public class OpenHabEntityMapper {
                 on = "ON".equals(m.state());
             }
         }
-        return FanDevice.builder()
-                .deviceId(deviceId).deviceClass(DeviceClass.FAN).label(label)
-                .available(available).lastUpdated(now).tenancyId(tenancyId)
-                .on(on)
-                .build();
+        b.on(on);
     }
 
-    private DeviceEntity mapSensor(String deviceId, String label, boolean available,
-                                    Instant now, List<OpenHabItemDto> members, List<String> equipmentTags) {
+    private void resolveSensor(ResolvedDeviceFields.Builder b,
+                               List<OpenHabItemDto> members, List<String> equipmentTags) {
         SensorType sensorType = resolveSensorType(equipmentTags, members);
-        String unit = null;
 
         // Battery equipment gets "%" unit
+        String unit = null;
         if (equipmentTags.contains("Battery")) {
             unit = "%";
         }
@@ -314,41 +258,51 @@ public class OpenHabEntityMapper {
                 break;
             }
             if (mtags.contains("Measurement") && mtags.contains("Power")) {
-                return PowerSensor.builder()
-                        .deviceId(deviceId).deviceClass(DeviceClass.POWER_SENSOR).label(label)
-                        .available(available).lastUpdated(now).tenancyId(tenancyId)
-                        .power(parseOrNull(m.state()))
-                        .build();
+                b.deviceClass(DeviceClass.POWER_SENSOR)
+                 .power(parseOrNull(m.state()));
+                return;
             }
             if (mtags.contains("Measurement") && mtags.contains("Energy")) {
-                return PowerSensor.builder()
-                        .deviceId(deviceId).deviceClass(DeviceClass.POWER_SENSOR).label(label)
-                        .available(available).lastUpdated(now).tenancyId(tenancyId)
-                        .energy(parseOrNull(m.state()))
-                        .build();
+                b.deviceClass(DeviceClass.POWER_SENSOR)
+                 .energy(parseOrNull(m.state()));
+                return;
             }
             if (mtags.contains("Measurement") && mtags.contains("Presence")) {
-                return PresenceSensor.builder()
-                        .deviceId(deviceId).deviceClass(DeviceClass.PRESENCE_SENSOR).label(label)
-                        .available(available).lastUpdated(now).tenancyId(tenancyId)
-                        .present("ON".equals(m.state()))
-                        .lastSeen(now)
-                        .build();
+                b.deviceClass(DeviceClass.PRESENCE_SENSOR)
+                 .present("ON".equals(m.state()));
+                return;
             }
         }
 
-        return SensorDevice.builder()
-                .deviceId(deviceId).deviceClass(DeviceClass.SENSOR).label(label)
-                .available(available).lastUpdated(now).tenancyId(tenancyId)
-                .sensorType(sensorType)
-                .numericValue(numericValue)
-                .unit(unit)
-                .build();
+        b.sensorType(sensorType).numericValue(numericValue).unit(unit);
+    }
+
+    // ---- device class resolution ----
+
+    DeviceClass resolveDeviceClass(List<String> tags) {
+        for (String tag : tags) {
+            if ("Equipment".equals(tag)) continue;
+
+            if (HVAC_TAGS.contains(tag)) return DeviceClass.THERMOSTAT;
+            if (LIGHT_TAGS.contains(tag)) return DeviceClass.LIGHT;
+            if (SWITCH_TAGS.contains(tag)) return DeviceClass.SWITCH;
+            if ("Lock".equals(tag)) return DeviceClass.LOCK;
+            if (COVER_TAGS.contains(tag)) return DeviceClass.COVER;
+            if (MEDIA_TAGS.contains(tag)) return DeviceClass.MEDIA_PLAYER;
+            if ("Fan".equals(tag)) return DeviceClass.FAN;
+            if ("Sensor".equals(tag)) return DeviceClass.SENSOR;
+            if ("MotionDetector".equals(tag)) return DeviceClass.SENSOR;
+            if ("Battery".equals(tag)) return DeviceClass.SENSOR;
+            if ("SmokeDetector".equals(tag)) return DeviceClass.SENSOR;
+        }
+
+        LOG.warnf("No recognised Equipment tag in %s — skipping", tags);
+        return null;
     }
 
     // ---- HVAC mode resolution ----
 
-    private ThermostatMode resolveHvacMode(List<OpenHabItemDto> members) {
+    static ThermostatMode resolveHvacMode(List<OpenHabItemDto> members) {
         for (OpenHabItemDto m : members) {
             Set<String> mtags = m.tagSet();
             if (mtags.contains("Control") && mtags.contains("Switch")) {
@@ -369,7 +323,7 @@ public class OpenHabEntityMapper {
         return ThermostatMode.OFF;
     }
 
-    private ThermostatMode mapHvacModeString(String state) {
+    static ThermostatMode mapHvacModeString(String state) {
         if (state == null) return ThermostatMode.OFF;
         return switch (state.toLowerCase(Locale.ROOT)) {
             case "heat" -> ThermostatMode.HEAT;
@@ -387,7 +341,7 @@ public class OpenHabEntityMapper {
 
     // ---- sensor type resolution ----
 
-    private SensorType resolveSensorType(List<String> equipmentTags, List<OpenHabItemDto> members) {
+    static SensorType resolveSensorType(List<String> equipmentTags, List<OpenHabItemDto> members) {
         if (equipmentTags.contains("MotionDetector")) return SensorType.MOTION;
         if (equipmentTags.contains("Battery")) return SensorType.GENERIC;
         if (equipmentTags.contains("SmokeDetector")) return SensorType.GENERIC;
@@ -403,7 +357,7 @@ public class OpenHabEntityMapper {
 
     // ---- temperature parsing ----
 
-    private Temperature parseTemperature(OpenHabItemDto member) {
+    static Temperature parseTemperature(OpenHabItemDto member) {
         BigDecimal value = parseOrNull(member.state());
         if (value == null) {
             value = BigDecimal.ZERO;
@@ -412,7 +366,7 @@ public class OpenHabEntityMapper {
         return new Temperature(value, unit);
     }
 
-    private Temperature.TemperatureUnit detectTemperatureUnit(OpenHabItemDto member) {
+    static Temperature.TemperatureUnit detectTemperatureUnit(OpenHabItemDto member) {
         if (member.stateDescription() != null && member.stateDescription().pattern() != null) {
             String pattern = member.stateDescription().pattern();
             if (pattern.contains("°F") || pattern.contains("℉")) {
@@ -424,7 +378,7 @@ public class OpenHabEntityMapper {
 
     // ---- cover position parsing ----
 
-    private Integer parseCoverPosition(OpenHabItemDto member) {
+    static Integer parseCoverPosition(OpenHabItemDto member) {
         String type = member.type();
         String state = member.state();
 
@@ -444,7 +398,7 @@ public class OpenHabEntityMapper {
 
     // ---- HSB parsing ----
 
-    private OpenHabHsbType parseHsb(String state) {
+    static OpenHabHsbType parseHsb(String state) {
         if (state == null || !state.contains(",")) return null;
         String[] parts = state.split(",");
         if (parts.length != 3) return null;
@@ -461,7 +415,7 @@ public class OpenHabEntityMapper {
 
     // ---- availability ----
 
-    private boolean isAvailable(List<OpenHabItemDto> members) {
+    static boolean isAvailable(List<OpenHabItemDto> members) {
         if (members.isEmpty()) return false;
         for (OpenHabItemDto m : members) {
             if (!isNullOrUndef(m.state())) {
@@ -473,11 +427,11 @@ public class OpenHabEntityMapper {
 
     // ---- utility methods ----
 
-    private static boolean isNullOrUndef(String state) {
+    static boolean isNullOrUndef(String state) {
         return "NULL".equals(state) || "UNDEF".equals(state);
     }
 
-    private static BigDecimal parseOrNull(String s) {
+    static BigDecimal parseOrNull(String s) {
         if (s == null || s.isBlank() || isNullOrUndef(s)) return null;
         try {
             return new BigDecimal(s);
@@ -486,7 +440,7 @@ public class OpenHabEntityMapper {
         }
     }
 
-    private static Integer parseIntOrNull(String s) {
+    static Integer parseIntOrNull(String s) {
         if (s == null || s.isBlank() || isNullOrUndef(s)) return null;
         try {
             return (int) Double.parseDouble(s);
@@ -495,7 +449,7 @@ public class OpenHabEntityMapper {
         }
     }
 
-    private static String nullSafe(String s) {
+    static String nullSafe(String s) {
         return s != null ? s : "";
     }
 }

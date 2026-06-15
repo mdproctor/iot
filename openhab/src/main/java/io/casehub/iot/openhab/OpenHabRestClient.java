@@ -1,6 +1,7 @@
 package io.casehub.iot.openhab;
 
 import io.casehub.iot.openhab.internal.OpenHabItemDto;
+import io.casehub.iot.openhab.internal.OpenHabThingDto;
 import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -17,6 +18,12 @@ public interface OpenHabRestClient {
     Uni<List<OpenHabItemDto>> getItems(
         @QueryParam("tags") String tags,
         @QueryParam("recursive") boolean recursive);
+
+    @GET @Path("/rest/things")
+    Uni<List<OpenHabThingDto>> getThings();
+
+    @GET @Path("/rest/items")
+    Uni<List<OpenHabItemDto>> getAllItems();
 
     @POST @Path("/rest/items/{itemName}")
     @Consumes(MediaType.TEXT_PLAIN)

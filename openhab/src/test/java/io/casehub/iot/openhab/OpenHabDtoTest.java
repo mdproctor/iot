@@ -1,10 +1,17 @@
 package io.casehub.iot.openhab;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.casehub.iot.openhab.internal.OpenHabChannelDto;
 import io.casehub.iot.openhab.internal.OpenHabItemDto;
 import io.casehub.iot.openhab.internal.OpenHabSseEventDto;
 import io.casehub.iot.openhab.internal.OpenHabStatePayloadDto;
+import io.casehub.iot.openhab.internal.OpenHabStatusInfoDto;
+import io.casehub.iot.openhab.internal.OpenHabThingDto;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class OpenHabDtoTest {
@@ -75,5 +82,91 @@ class OpenHabDtoTest {
         assertThat(payload.type()).isEqualTo("Decimal");
         assertThat(payload.value()).isEqualTo("22.0");
         assertThat(payload.oldValue()).isEqualTo("21.5");
+    }
+
+    @Test
+    void thingDtoDeserializesFromJson() throws Exception {
+        String json = """
+            {
+              "UID": "zwave:device:controller:node15",
+              "label": "Living Room Thermostat",
+              "thingTypeUID": "zwave:device",
+              "statusInfo": {
+                "status": "ONLINE",
+                "statusDetail": "NONE"
+              },
+              "channels": [
+                {
+                  "uid": "zwave:device:controller:node15:switch_binary",
+                  "id": "switch_binary",
+                  "channelTypeUID": "zwave:switch_binary",
+                  "itemType": "Switch",
+                  "kind": "STATE",
+                  "linkedItems": ["LivingRoom_HVAC_Power"],
+                  "defaultTags": ["Switch"]
+                },
+                {
+                  "uid": "zwave:device:controller:node15:alarm_motion",
+                  "id": "alarm_motion",
+                  "channelTypeUID": "zwave:alarm_motion",
+                  "itemType": "Switch",
+                  "kind": "TRIGGER",
+                  "linkedItems": [],
+                  "defaultTags": ["Alarm"]
+                }
+              ],
+              "location": "Living Room"
+            }
+            """;
+        OpenHabThingDto thing = mapper.readValue(json, OpenHabThingDto.class);
+        assertThat(thing.uid()).isEqualTo("zwave:device:controller:node15");
+        assertThat(thing.label()).isEqualTo("Living Room Thermostat");
+        assertThat(thing.thingTypeUID()).isEqualTo("zwave:device");
+        assertThat(thing.location()).isEqualTo("Living Room");
+
+        assertThat(thing.statusInfo()).isNotNull();
+        assertThat(thing.statusInfo().status()).isEqualTo("ONLINE");
+        assertThat(thing.statusInfo().statusDetail()).isEqualTo("NONE");
+        assertThat(thing.isOnline()).isTrue();
+
+        assertThat(thing.channels()).hasSize(2);
+        OpenHabChannelDto stateChannel = thing.channels().get(0);
+        assertThat(stateChannel.uid()).isEqualTo("zwave:device:controller:node15:switch_binary");
+        assertThat(stateChannel.id()).isEqualTo("switch_binary");
+        assertThat(stateChannel.channelTypeUID()).isEqualTo("zwave:switch_binary");
+        assertThat(stateChannel.itemType()).isEqualTo("Switch");
+        assertThat(stateChannel.kind()).isEqualTo("STATE");
+        assertThat(stateChannel.linkedItems()).containsExactly("LivingRoom_HVAC_Power");
+        assertThat(stateChannel.defaultTags()).containsExactly("Switch");
+        assertThat(stateChannel.isStateChannel()).isTrue();
+
+        OpenHabChannelDto triggerChannel = thing.channels().get(1);
+        assertThat(triggerChannel.kind()).isEqualTo("TRIGGER");
+        assertThat(triggerChannel.isStateChannel()).isFalse();
+
+        assertThat(thing.stateChannels()).hasSize(1);
+        assertThat(thing.stateChannels().get(0).id()).isEqualTo("switch_binary");
+    }
+
+    @Test
+    void thingStatusPayloadDeserializesAsArray() throws Exception {
+        String json = """
+            [
+              {
+                "status": "ONLINE",
+                "statusDetail": "NONE"
+              },
+              {
+                "status": "OFFLINE",
+                "statusDetail": "COMMUNICATION_ERROR"
+              }
+            ]
+            """;
+        List<OpenHabStatusInfoDto> statusList = mapper.readValue(json, new TypeReference<List<OpenHabStatusInfoDto>>() {});
+        assertThat(statusList).hasSize(2);
+        assertThat(statusList.get(0).status()).isEqualTo("ONLINE");
+        assertThat(statusList.get(0).statusDetail()).isEqualTo("NONE");
+        assertThat(statusList.get(1).status()).isEqualTo("OFFLINE");
+        assertThat(statusList.get(1).statusDetail()).isEqualTo("COMMUNICATION_ERROR");
     }
 }

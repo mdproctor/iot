@@ -13,6 +13,7 @@ public interface OpenHabConfig {
     @WithDefault("5")   int reconnectBaseSeconds();
     @WithDefault("300") int reconnectMaxSeconds();
     @WithDefault("50")  int coalesceWindowMs();
+    @WithDefault("true") boolean thingDiscoveryEnabled();
 
     interface Auth {
         Optional<Bearer> bearer();
