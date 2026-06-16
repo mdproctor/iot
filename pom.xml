@@ -44,6 +44,7 @@
         <module>openhab</module>
         <module>testing</module>
         <module>bridge</module>
+        <module>bridge-server</module>
     </modules>
 
 </project>

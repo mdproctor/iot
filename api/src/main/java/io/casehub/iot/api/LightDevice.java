@@ -1,8 +1,12 @@
 package io.casehub.iot.api;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+
 import java.util.Map;
 import java.util.Optional;
 
+@JsonDeserialize(builder = LightDevice.Builder.class)
 public class LightDevice extends DeviceEntity {
 
     public static final String CAP_ON = "isOn";
@@ -41,6 +45,7 @@ public class LightDevice extends DeviceEntity {
         return caps;
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static final class Builder extends AbstractBuilder<LightDevice, Builder> {
         @Override
         protected Builder self() {

@@ -1,7 +1,11 @@
 package io.casehub.iot.api;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+
 import java.util.Map;
 
+@JsonDeserialize(builder = SwitchDevice.Builder.class)
 public class SwitchDevice extends DeviceEntity {
 
     public static final String CAP_ON = "isOn";
@@ -35,6 +39,7 @@ public class SwitchDevice extends DeviceEntity {
         return new Builder();
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static final class Builder extends DeviceEntity.Builder<SwitchDevice, Builder> {
         private boolean on;
 

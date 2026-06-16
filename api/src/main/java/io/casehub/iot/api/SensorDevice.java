@@ -1,10 +1,14 @@
 package io.casehub.iot.api;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+@JsonDeserialize(builder = SensorDevice.Builder.class)
 public class SensorDevice extends DeviceEntity {
 
     public static final String CAP_NUMERIC_VALUE = "numericValue";
@@ -58,6 +62,7 @@ public class SensorDevice extends DeviceEntity {
         return new Builder();
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static final class Builder extends DeviceEntity.Builder<SensorDevice, Builder> {
         private SensorType sensorType;
         private BigDecimal numericValue;

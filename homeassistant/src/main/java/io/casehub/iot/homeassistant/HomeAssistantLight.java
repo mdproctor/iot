@@ -1,5 +1,7 @@
 package io.casehub.iot.homeassistant;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.casehub.iot.api.LightDevice;
 
 import java.util.Map;
@@ -11,6 +13,7 @@ import java.util.Set;
  * Adds HA-specific fields that have no cross-vendor equivalent:
  * RGB colour, light effect, and supported colour modes.
  */
+@JsonDeserialize(builder = HomeAssistantLight.Builder.class)
 public class HomeAssistantLight extends LightDevice {
 
     public static final String CAP_RGB_COLOR = "rgbColor";
@@ -64,6 +67,7 @@ public class HomeAssistantLight extends LightDevice {
         return new Builder();
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static final class Builder extends AbstractBuilder<HomeAssistantLight, Builder> {
         @Override
         protected Builder self() {

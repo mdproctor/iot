@@ -1,5 +1,7 @@
 package io.casehub.iot.openhab;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.casehub.iot.api.LightDevice;
 
 import java.util.Map;
@@ -9,6 +11,7 @@ import java.util.Optional;
  * OpenHAB supplement for {@link LightDevice}.
  * Adds OpenHAB-specific field: HSB (Hue-Saturation-Brightness) color type.
  */
+@JsonDeserialize(builder = OpenHabLight.Builder.class)
 public class OpenHabLight extends LightDevice {
 
     public static final String CAP_HSB = "hsb";
@@ -43,6 +46,7 @@ public class OpenHabLight extends LightDevice {
         return new Builder();
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static final class Builder extends AbstractBuilder<OpenHabLight, Builder> {
         @Override
         protected Builder self() {

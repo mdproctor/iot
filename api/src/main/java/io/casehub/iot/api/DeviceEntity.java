@@ -1,10 +1,21 @@
 package io.casehub.iot.api;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.annotation.JsonTypeIdResolver;
+
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.CUSTOM, property = "@deviceType")
+@JsonTypeIdResolver(DeviceTypeIdResolver.class)
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY,
+                getterVisibility = JsonAutoDetect.Visibility.NONE,
+                isGetterVisibility = JsonAutoDetect.Visibility.NONE)
 public abstract class DeviceEntity {
 
     private final String deviceId;
@@ -57,6 +68,7 @@ public abstract class DeviceEntity {
     }
 
     @SuppressWarnings("unchecked")
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public abstract static class Builder<T extends DeviceEntity, B extends Builder<T, B>> {
         String deviceId;
         DeviceClass deviceClass;

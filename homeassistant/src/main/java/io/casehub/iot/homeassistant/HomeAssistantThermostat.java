@@ -1,5 +1,7 @@
 package io.casehub.iot.homeassistant;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.casehub.iot.api.ThermostatDevice;
 
 import java.util.Map;
@@ -9,6 +11,7 @@ import java.util.Optional;
  * Home Assistant supplement for {@link ThermostatDevice}.
  * Adds HA-specific fields: preset mode, swing mode, and HVAC action.
  */
+@JsonDeserialize(builder = HomeAssistantThermostat.Builder.class)
 public class HomeAssistantThermostat extends ThermostatDevice {
 
     public static final String CAP_PRESET_MODE = "presetMode";
@@ -61,6 +64,7 @@ public class HomeAssistantThermostat extends ThermostatDevice {
         return new Builder();
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static final class Builder extends AbstractBuilder<HomeAssistantThermostat, Builder> {
         @Override
         protected Builder self() {

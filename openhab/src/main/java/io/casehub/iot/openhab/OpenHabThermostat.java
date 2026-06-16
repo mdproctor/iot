@@ -1,5 +1,7 @@
 package io.casehub.iot.openhab;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.casehub.iot.api.ThermostatDevice;
 
 import java.math.BigDecimal;
@@ -10,6 +12,7 @@ import java.util.Optional;
  * OpenHAB supplement for {@link ThermostatDevice}.
  * Adds OpenHAB-specific fields: heating demand and cooling demand percentages.
  */
+@JsonDeserialize(builder = OpenHabThermostat.Builder.class)
 public class OpenHabThermostat extends ThermostatDevice {
 
     public static final String CAP_HEATING_DEMAND = "heatingDemand";
@@ -54,6 +57,7 @@ public class OpenHabThermostat extends ThermostatDevice {
         return new Builder();
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static final class Builder extends AbstractBuilder<OpenHabThermostat, Builder> {
         @Override
         protected Builder self() {

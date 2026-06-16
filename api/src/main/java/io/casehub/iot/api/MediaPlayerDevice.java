@@ -1,8 +1,12 @@
 package io.casehub.iot.api;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+
 import java.util.Map;
 import java.util.Optional;
 
+@JsonDeserialize(builder = MediaPlayerDevice.Builder.class)
 public class MediaPlayerDevice extends DeviceEntity {
 
     public static final String CAP_PLAYING = "isPlaying";
@@ -44,6 +48,7 @@ public class MediaPlayerDevice extends DeviceEntity {
         return new Builder();
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static final class Builder extends DeviceEntity.Builder<MediaPlayerDevice, Builder> {
         private boolean playing;
         private Integer volume;

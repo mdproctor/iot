@@ -7,7 +7,7 @@
 **Consumed by:** casehub-life (Layer 9), future property management, elder care apps
 **Depends on:** none
 **Prefix:** IOT
-**Status:** C1–C4 complete. C5 scoped.
+**Status:** C1–C5 complete.
 
 ---
 
@@ -136,14 +136,14 @@ C4Context
 
 | Layer | Concern | Module | Character |
 |---|---|---|---|
-| L1 | Device Type System | iot-api | Pure Java — types, enums, value objects. Zero framework dependency. |
+| L1 | Device Type System | iot-api | Types, enums, value objects + Jackson serialization annotations (`@JsonTypeInfo`, `DeviceTypeIdResolver`). |
 | L2 | SPI & Registry | iot-api | CDI contracts (blocking SPIs), @DefaultBean CdiDeviceRegistry |
 | L3 | Home Assistant | iot-homeassistant | REST + WebSocket provider + supplement types |
 | L4 | OpenHAB | iot-openhab | REST + SSE + semantic model + state cache + supplement types |
 | L5 | Test Harness | iot-testing | Mock provider, fixture devices (Java `Fixtures` + YAML `DeviceFixtureLoader`), `DeviceTypeHandler` SPI, event publisher |
-| L6 | Bridge | iot-bridge | Cloud relay, deployment modes |
+| L6 | Bridge | iot-bridge + iot-bridge-server | Two-sided tunnel: local agent (event relay, filter chain) + cloud-side BridgeDeviceProvider |
 
-L1 and L2 both reside in `iot-api` but represent distinct architectural concerns: L1 is pure Java with zero framework imports (the vocabulary); L2 introduces CDI, Mutiny, and runtime behavior (the contracts). This mirrors the api/app split in application-tier repos at a finer grain.
+L1 and L2 both reside in `iot-api` but represent distinct architectural concerns: L1 is the vocabulary (types, enums, Jackson serialization annotations); L2 introduces CDI, Mutiny, and runtime behavior (the contracts). L1 now includes Jackson `@JsonTypeInfo` and `DeviceTypeIdResolver` — a deliberate boundary change from "zero framework dependency" to support polymorphic serialization across process boundaries. L6 spans two modules: `iot-bridge` (standalone Quarkus app for the local agent) and `iot-bridge-server` (library for the cloud-side provider).
 
 ### Chapter Sequencing Rationale
 
@@ -469,7 +469,7 @@ This preserves OpenHAB's field-level precision and makes HA produce the same gra
 
 | Journey | Description | Chapters | Status |
 |---|---|---|---|
-| IoT Device Abstraction | From bare scaffold to deployable, tested, multi-platform device integration layer | 5 | In progress |
+| IoT Device Abstraction | From bare scaffold to deployable, tested, multi-platform device integration layer | 5 | Complete |
 
 ```mermaid
 flowchart LR
@@ -482,7 +482,7 @@ flowchart LR
   style C2 fill:#90EE90,color:#000
   style C3 fill:#D3D3D3,color:#000
   style C4 fill:#D3D3D3,color:#000
-  style C5 fill:#D3D3D3,color:#000
+  style C5 fill:#90EE90,color:#000
 ```
 
 ---
@@ -495,7 +495,7 @@ flowchart LR
 | 2 | Test Infrastructure | IoT Device Abstraction | + L5 | High | ✅ |
 | 3 | Home Assistant | IoT Device Abstraction | + L3 | High | ✅ |
 | 4 | OpenHAB | IoT Device Abstraction | + L4 | High | ✅ |
-| 5 | Bridge | IoT Device Abstraction | + L6 | High | 🔲 |
+| 5 | Bridge | IoT Device Abstraction | + L6 | High | ✅ |
 
 ### Layer x Chapter Matrix
 
@@ -579,8 +579,8 @@ L1 and L2 appear in C1–C4: foundational — real platform data in C3/C4 may su
 
 ### Chapter 3 — Home Assistant
 
-**Journey:** IoT Device Abstraction | **Sequence:** 3 of 5 | **Status:** 🔲
-**Issues:** #3
+**Journey:** IoT Device Abstraction | **Sequence:** 3 of 5 | **Status:** ✅
+**Delivered:** 2026-06-12 | **Issues:** #3
 
 **What this delivers**
 
@@ -604,8 +604,8 @@ L1 and L2 appear in C1–C4: foundational — real platform data in C3/C4 may su
 
 ### Chapter 4 — OpenHAB
 
-**Journey:** IoT Device Abstraction | **Sequence:** 4 of 5 | **Status:** 🔲
-**Issues:** #4
+**Journey:** IoT Device Abstraction | **Sequence:** 4 of 5 | **Status:** ✅
+**Delivered:** 2026-06-15 | **Issues:** #4
 
 **What this delivers**
 
@@ -630,8 +630,8 @@ L1 and L2 appear in C1–C4: foundational — real platform data in C3/C4 may su
 
 ### Chapter 5 — Bridge
 
-**Journey:** IoT Device Abstraction | **Sequence:** 5 of 5 | **Status:** 🔲
-**Issues:** #5
+**Journey:** IoT Device Abstraction | **Sequence:** 5 of 5 | **Status:** ✅
+**Delivered:** 2026-06-17 | **Issues:** #5
 
 **What this delivers**
 
@@ -1078,70 +1078,91 @@ Not closed here: real platform integration (L3/L4), bridge (L6). YAML fixture lo
 ### Layer — Bridge
 
 **Participates in chapters:** C5
-**Architectural patterns:** Event Relay, WebSocket Client, Deployment Mode Selection
-**Key protocols:** WebSocket for cloud relay; TLS + auth token
-**Design refs:** `docs/superpowers/specs/2026-06-05-iot-foundation-design.md` §Deployment Modes
+**Architectural patterns:** Two-Sided Tunnel (DeviceProvider SPI), CDI-Discovered Filter Chain, Sealed Interface Wire Protocol, Server-Side Device ID Namespacing, Compound Type ID with Graceful Degradation
+**Key protocols:** WebSocket (Quarkus WebSocket Next) for cloud relay; TLS + auth token; compound `@deviceType` serialization
+**Design refs:** `docs/superpowers/specs/2026-06-16-bridge-runtime-design.md`
 **Issues:** casehubio/iot#5
 **Navigation:** `git log --grep="#5" --oneline`
 **Blog:** 🔲
-**Improvement refs:** 🔲
-**Completed:** 🔲 pending
+**Improvement refs:** casehubio/iot#20 (durable store-and-forward), casehubio/iot#22 (WebSocket command dispatch), casehubio/iot#23 (multi-provider routing)
+**Completed:** ✅ 2026-06-17
 
 #### What it adds
 
 **Before:** Local deployment only — provider connects to HA/OpenHAB on the local network. No remote or SaaS option.
-**After:** `BridgeRuntime` observes local StateChangeEvents, serializes, and forwards to cloud CaseHub via WebSocket. DeviceCommands relayed from cloud back to local providers. Hybrid mode runs selectable automations locally.
+**After:** Two-module bridge — `casehub-iot-bridge` (local agent) + `casehub-iot-bridge-server` (cloud-side `BridgeDeviceProvider implements DeviceProvider`). Remote devices look local to cloud consumers. CDI-discovered event filter chain on the agent. Server-side device ID namespacing for multi-site deployments.
 
-- **SaaS bridge** — StateChangeEvent forwarded to cloud; DeviceCommand relayed back; bridge is stateless
-- **Hybrid mode** — local automations for latency-sensitive reactions (security alerts, presence lights); cloud automations for orchestration, optimization, HITL
-- **Event serialization** — StateChangeEvent is already a clean serializable record; natural wire protocol
+- **Two-sided tunnel** — `BridgeDeviceProvider` implements `DeviceProvider` SPI. Cloud consumers observe `@ObservesAsync StateChangeEvent` without bridge-specific code.
+- **Sealed BridgeMessage** — 6 record variants (StateChange, StateSnapshot, ProviderStatusChange, Command, CommandResponse, Heartbeat) with exhaustive pattern matching. Wire format names: STATE_CHANGE, STATE_SNAPSHOT, PROVIDER_STATUS, COMMAND, COMMAND_RESULT, HEARTBEAT.
+- **Compound type ID** — `DeviceTypeIdResolver` with `"{DeviceClass}:{ClassName}"` format. Graceful degradation: unknown supplement types fall back to common parent via DeviceClass prefix.
+- **CDI-discovered filter chain** — `BridgeEventFilter` SPI processes `StateChangeEvent` before relay. No filters registered → forward all.
+- **Server-side namespacing** — `DeviceIdNamespacer` (Jackson tree copy) prepends `{tenancyId}/` to device IDs. Prevents collision in multi-site deployments.
+- **Snapshot-only reconnection** — no event buffer. On reconnect, fresh `STATE_SNAPSHOT` via `discover()`.
 
-Not closed here: Drools integration for hybrid local automations (application tier responsibility).
+Not closed here: Drools integration for hybrid local automations (deployment topology, not bridge feature). Durable store-and-forward (#20). WebSocket command dispatch (#22).
 
 #### Accountability gaps closed
 
 | Gap | What breaks without it | Closed by |
 |---|---|---|
-| Local deployment only | CaseHub SaaS users cannot control home devices | Bridge forwards events and relays commands over WebSocket |
-| No hybrid option | Latency-sensitive automations delayed by cloud round-trip | Hybrid mode selects which automations run locally vs cloud |
+| Local deployment only | CaseHub SaaS users cannot control home devices | Two-sided tunnel forwards events and relays commands over WebSocket |
+| No hybrid option | Latency-sensitive automations delayed by cloud round-trip | CDI classpath extension — add application-tier logic to bridge deployment |
+| Multi-site device ID collision | Two HA installations with `light.kitchen` overwrite each other | Server-side namespacing: `{tenancyId}/{localId}` |
+| DeviceEntity not serializable | Cannot cross process boundaries | Compound type ID via `DeviceTypeIdResolver` with Jackson annotations |
 
-#### Key files (planned)
+#### Key files (delivered)
 
-- `iot-bridge/src/main/java/io/casehub/iot/bridge/BridgeRuntime.java` — @ApplicationScoped; @ObservesAsync StateChangeEvent → forward; WebSocket receive → dispatch
-- `iot-bridge/src/main/java/io/casehub/iot/bridge/CloudWebSocketClient.java` — WebSocket client for cloud endpoint
-- `iot-bridge/src/main/java/io/casehub/iot/bridge/EventSerializer.java` — StateChangeEvent ↔ JSON serialization
+- `bridge/src/main/java/io/casehub/iot/bridge/agent/BridgeEventObserver.java` — `@ObservesAsync StateChangeEvent` → filter chain → relay
+- `bridge/src/main/java/io/casehub/iot/bridge/agent/BridgeFilterChain.java` — CDI-discovered `BridgeEventFilter` beans, priority-ordered
+- `bridge/src/main/java/io/casehub/iot/bridge/agent/BridgeCloudClient.java` — `@WebSocketClient` endpoint, command dispatch + heartbeat
+- `bridge/src/main/java/io/casehub/iot/bridge/agent/BridgeConnectionManager.java` — connection lifecycle, auth, reconnect, snapshot
+- `bridge-server/src/main/java/io/casehub/iot/bridge/server/BridgeDeviceProvider.java` — `DeviceProvider` impl, device map, snapshot diff
+- `bridge-server/src/main/java/io/casehub/iot/bridge/server/BridgeWebSocketEndpoint.java` — `@WebSocket` server, message routing
+- `bridge-server/src/main/java/io/casehub/iot/bridge/server/DeviceIdNamespacer.java` — Jackson tree copy for ID namespacing
+- `api/src/main/java/io/casehub/iot/api/DeviceTypeIdResolver.java` — compound type ID resolver
+- `api/src/main/java/io/casehub/iot/api/bridge/BridgeMessage.java` — sealed interface, 6 variants
 
 #### Key wiring
 
-- **Bridge has no domain logic** — pure event forwarding and command relay. Automation rules belong in the application tier (casehub-life or Drools).
-- **Authentication** — `casehub.iot.bridge.token` + `casehub.iot.bridge.tenant-id` sent on WebSocket connect. TLS for transport.
-- **Hybrid mode configuration** — `casehub.iot.bridge.local-automations` and `casehub.iot.bridge.cloud-automations` are comma-separated automation IDs. Events matching local automations are processed locally AND forwarded to cloud.
+- **Bridge has no domain logic** — pure event forwarding and command relay. Local processing via CDI classpath extension.
+- **ARC42 §7 hybrid config superseded** — `local-automations`/`cloud-automations` properties replaced by deployment topology model.
+- **L1 boundary change** — `jackson-databind` added to iot-api. L1 is no longer "zero framework dependency" — Jackson annotations are a first-class serialization concern.
+- **Vendor Modules register via `DeviceTypeIdResolver.registerType()`** — NOT `context.registerSubtypes()` (which feeds the standard resolver, not the custom one).
 
 #### Architectural decisions
 
-- **Why WebSocket for cloud relay, not HTTP POST:** State changes are continuous and bidirectional (events up, commands down). WebSocket provides persistent connection with low overhead per message. HTTP POST would require separate polling for commands.
-- **Why bridge is stateless:** State management introduces consistency problems between bridge and cloud. Bridge forwards events as they arrive; cloud maintains the authoritative device state. Recovery is simple: bridge reconnects; cloud re-syncs via `discover()`.
+- **Why two-sided tunnel (not one-sided relay):** `BridgeDeviceProvider implements DeviceProvider` — cloud consumers are completely unaware of the bridge. The DeviceProvider SPI was designed for exactly this.
+- **Why compound type ID `"{DeviceClass}:{ClassName}"` (not `deviceClass` discriminator):** `deviceClass` can't distinguish supplements from common types (both share the same value). Compound format embeds the fallback in the type ID itself — no JSON field access needed during deserialization.
+- **Why sealed BridgeMessage (not Object payload):** Exhaustive pattern matching, no casting, correlationId only where needed. Compiler catches missing message types.
+- **Why CDI-discovered filter chain (not SmallRye Reactive Messaging):** SmallRye is for inter-service transport. CDI Instance<> discovery is the CaseHub-native pattern for extensible in-app processing.
+- **Why server-side namespacing (not agent-side):** Agent stays simple. Rewriting in one place. Wire format carries original IDs (debuggable). Jackson tree copy handles all types including supplements without toBuilder().
+- **Why snapshot-only reconnection (not event buffer):** Replaying buffered events risks ghost automations. Snapshot provides current truth. Same as crash recovery.
 
 #### Pattern introduced
 
-**Stateless event relay with deployment mode selection:** Bridge observes local events, forwards to cloud, relays commands back. No state management — cloud is authoritative. Deployment mode (local/bridge/hybrid) configured at startup.
+**Two-sided tunnel via SPI + CDI-discovered filter chain:** Bridge agent observes local CDI events, runs an extensible filter chain, and forwards over WebSocket. Cloud-side provider implements the same SPI as local providers — consumers are unaware of the network boundary.
 
 #### Pattern anchor
 
-- `BridgeRuntime` — event observation + forwarding
+- `BridgeDeviceProvider` — DeviceProvider SPI implementation for remote devices
+- `BridgeFilterChain` — CDI Instance<> discovery with priority ordering
+- `DeviceTypeIdResolver` — compound type ID with graceful degradation
 
 #### Gotchas
 
-🔲 at C5 close.
+- `DeserializationProblemHandler.handleUnknownTypeId()` has no access to sibling JSON fields — only the type ID string. Fallback must be self-contained in the type ID (compound format solves this).
+- `context.registerSubtypes()` feeds Jackson's standard `TypeNameIdResolver`, not a custom resolver. Vendor modules must call `DeviceTypeIdResolver.registerType()` directly.
+- `toBuilder()` is deliberately absent on the 4 common types with supplement subclasses (ThermostatDevice, LightDevice, LockDevice, CoverDevice). Adding it creates a type-slicing trap. Jackson tree copy is the polymorphic copy mechanism.
+- `@JsonAutoDetect(fieldVisibility = ANY)` on DeviceEntity is required because accessor methods use non-JavaBean naming (`deviceId()` not `getDeviceId()`).
 
 #### Pattern to replicate
 
-1. Create a `@ApplicationScoped` runtime that `@ObservesAsync` the system's state change event.
-2. Serialize the event to JSON (the event should already be a clean serializable record).
-3. Forward via WebSocket to the cloud endpoint with tenant-id and auth token.
-4. Listen for incoming commands on the same WebSocket; deserialize and dispatch to the local provider.
-5. Add deployment mode configuration: local (no bridge), bridge (all events forwarded), hybrid (selected events processed locally).
-6. Keep the bridge stateless — cloud is the authoritative state store.
+1. Define a sealed wire protocol interface with one record per message type. Use `@JsonTypeInfo`/`@JsonSubTypes` for serialization. No default branches in switch.
+2. Implement the cloud-side as an SPI implementation (same interface as local providers). Cloud consumers don't need bridge-specific code.
+3. Use CDI `Instance<>` discovery for extensible processing (filter chain, pipeline). Sort by priority, chain sequentially, short-circuit on terminate signal.
+4. For polymorphic type hierarchies that cross process boundaries: use a custom `TypeIdResolver` with compound IDs that embed fallback information. Vendor modules register with the resolver directly.
+5. For polymorphic copy (modify a field on an abstract type): use Jackson `valueToTree()` → modify `ObjectNode` → `treeToValue()`. Avoids type-slicing from builder inheritance.
+6. Namespace IDs server-side for multi-tenant deployments. Agent sends raw IDs; server applies the prefix.
 
 ---
 

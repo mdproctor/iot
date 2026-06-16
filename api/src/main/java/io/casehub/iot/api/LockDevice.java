@@ -1,7 +1,11 @@
 package io.casehub.iot.api;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+
 import java.util.Map;
 
+@JsonDeserialize(builder = LockDevice.Builder.class)
 public class LockDevice extends DeviceEntity {
 
     public static final String CAP_LOCKED = "isLocked";
@@ -24,6 +28,7 @@ public class LockDevice extends DeviceEntity {
         return caps;
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static final class Builder extends AbstractBuilder<LockDevice, Builder> {
         @Override
         protected Builder self() {

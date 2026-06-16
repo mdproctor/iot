@@ -1,9 +1,13 @@
 package io.casehub.iot.api;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Optional;
 
+@JsonDeserialize(builder = PowerSensor.Builder.class)
 public class PowerSensor extends DeviceEntity {
 
     public static final String CAP_POWER = "power";
@@ -45,6 +49,7 @@ public class PowerSensor extends DeviceEntity {
         return new Builder();
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static final class Builder extends DeviceEntity.Builder<PowerSensor, Builder> {
         private BigDecimal power;
         private BigDecimal energy;

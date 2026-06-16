@@ -1,9 +1,13 @@
 package io.casehub.iot.api;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 
+@JsonDeserialize(builder = PresenceSensor.Builder.class)
 public class PresenceSensor extends DeviceEntity {
 
     public static final String CAP_PRESENT = "isPresent";
@@ -45,6 +49,7 @@ public class PresenceSensor extends DeviceEntity {
         return new Builder();
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static final class Builder extends DeviceEntity.Builder<PresenceSensor, Builder> {
         private boolean present;
         private Instant lastSeen;

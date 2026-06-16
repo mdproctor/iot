@@ -1,8 +1,12 @@
 package io.casehub.iot.api;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+
 import java.util.Map;
 import java.util.Optional;
 
+@JsonDeserialize(builder = FanDevice.Builder.class)
 public class FanDevice extends DeviceEntity {
 
     public static final String CAP_ON = "isOn";
@@ -44,6 +48,7 @@ public class FanDevice extends DeviceEntity {
         return new Builder();
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static final class Builder extends DeviceEntity.Builder<FanDevice, Builder> {
         private boolean on;
         private Integer speed;

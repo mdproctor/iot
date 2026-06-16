@@ -1,8 +1,12 @@
 package io.casehub.iot.api;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+
 import java.util.Map;
 import java.util.Objects;
 
+@JsonDeserialize(builder = ThermostatDevice.Builder.class)
 public class ThermostatDevice extends DeviceEntity {
 
     public static final String CAP_CURRENT_TEMPERATURE = "currentTemperature";
@@ -41,6 +45,7 @@ public class ThermostatDevice extends DeviceEntity {
         return caps;
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static final class Builder extends AbstractBuilder<ThermostatDevice, Builder> {
         @Override
         protected Builder self() {

@@ -1,8 +1,12 @@
 package io.casehub.iot.api;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+
 import java.util.Map;
 import java.util.Optional;
 
+@JsonDeserialize(builder = CoverDevice.Builder.class)
 public class CoverDevice extends DeviceEntity {
 
     public static final String CAP_POSITION = "position";
@@ -38,6 +42,7 @@ public class CoverDevice extends DeviceEntity {
         return caps;
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static final class Builder extends AbstractBuilder<CoverDevice, Builder> {
         @Override
         protected Builder self() {

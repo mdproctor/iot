@@ -1,5 +1,7 @@
 package io.casehub.iot.homeassistant;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.casehub.iot.api.LockDevice;
 
 import java.util.Map;
@@ -9,6 +11,7 @@ import java.util.Optional;
  * Home Assistant supplement for {@link LockDevice}.
  * Adds HA-specific fields: who changed the lock and which code slot was used.
  */
+@JsonDeserialize(builder = HomeAssistantLock.Builder.class)
 public class HomeAssistantLock extends LockDevice {
 
     public static final String CAP_CHANGED_BY = "changedBy";
@@ -51,6 +54,7 @@ public class HomeAssistantLock extends LockDevice {
         return new Builder();
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static final class Builder extends AbstractBuilder<HomeAssistantLock, Builder> {
         @Override
         protected Builder self() {

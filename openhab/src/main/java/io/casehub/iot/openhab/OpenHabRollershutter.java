@@ -1,5 +1,7 @@
 package io.casehub.iot.openhab;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import io.casehub.iot.api.CoverDevice;
 
 import java.util.Map;
@@ -9,6 +11,7 @@ import java.util.Optional;
  * OpenHAB supplement for {@link CoverDevice}.
  * Adds OpenHAB-specific field: upDown directional command state.
  */
+@JsonDeserialize(builder = OpenHabRollershutter.Builder.class)
 public class OpenHabRollershutter extends CoverDevice {
 
     public static final String CAP_UP_DOWN = "upDown";
@@ -44,6 +47,7 @@ public class OpenHabRollershutter extends CoverDevice {
         return new Builder();
     }
 
+    @JsonPOJOBuilder(withPrefix = "")
     public static final class Builder extends AbstractBuilder<OpenHabRollershutter, Builder> {
         @Override
         protected Builder self() {
