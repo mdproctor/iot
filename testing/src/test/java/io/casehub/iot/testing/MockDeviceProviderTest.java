@@ -24,7 +24,7 @@ class MockDeviceProviderTest {
     private SwitchDevice sw(String id) {
         return SwitchDevice.builder()
             .deviceId(id).deviceClass(DeviceClass.SWITCH).label("S")
-            .available(true).lastUpdated(NOW).tenancyId("t1").on(false).build();
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test").on(false).build();
     }
 
     @Test

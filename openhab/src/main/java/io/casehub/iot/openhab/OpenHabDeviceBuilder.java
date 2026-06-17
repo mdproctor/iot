@@ -52,7 +52,7 @@ public final class OpenHabDeviceBuilder {
         if (f.heatingDemand() != null || f.coolingDemand() != null) {
             return OpenHabThermostat.builder()
                     .deviceId(f.deviceId()).deviceClass(DeviceClass.THERMOSTAT).label(f.label())
-                    .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId())
+                    .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId()).providerId("openhab")
                     .currentTemperature(currentTemp).targetTemperature(targetTemp).mode(mode)
                     .heatingDemand(f.heatingDemand()).coolingDemand(f.coolingDemand())
                     .build();
@@ -60,7 +60,7 @@ public final class OpenHabDeviceBuilder {
 
         return new ThermostatDevice.Builder()
                 .deviceId(f.deviceId()).deviceClass(DeviceClass.THERMOSTAT).label(f.label())
-                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId())
+                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId()).providerId("openhab")
                 .currentTemperature(currentTemp).targetTemperature(targetTemp).mode(mode)
                 .build();
     }
@@ -73,14 +73,14 @@ public final class OpenHabDeviceBuilder {
         if (f.hsb() != null) {
             return OpenHabLight.builder()
                     .deviceId(f.deviceId()).deviceClass(DeviceClass.LIGHT).label(f.label())
-                    .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId())
+                    .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId()).providerId("openhab")
                     .on(on).brightness(f.brightness()).hsb(f.hsb())
                     .build();
         }
 
         return new LightDevice.Builder()
                 .deviceId(f.deviceId()).deviceClass(DeviceClass.LIGHT).label(f.label())
-                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId())
+                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId()).providerId("openhab")
                 .on(on)
                 .build();
     }
@@ -92,7 +92,7 @@ public final class OpenHabDeviceBuilder {
 
         return SwitchDevice.builder()
                 .deviceId(f.deviceId()).deviceClass(DeviceClass.SWITCH).label(f.label())
-                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId())
+                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId()).providerId("openhab")
                 .on(on)
                 .build();
     }
@@ -104,7 +104,7 @@ public final class OpenHabDeviceBuilder {
 
         return new LockDevice.Builder()
                 .deviceId(f.deviceId()).deviceClass(DeviceClass.LOCK).label(f.label())
-                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId())
+                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId()).providerId("openhab")
                 .locked(locked)
                 .build();
     }
@@ -115,14 +115,14 @@ public final class OpenHabDeviceBuilder {
         if (f.isRollershutter()) {
             return OpenHabRollershutter.builder()
                     .deviceId(f.deviceId()).deviceClass(DeviceClass.COVER).label(f.label())
-                    .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId())
+                    .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId()).providerId("openhab")
                     .position(f.position()).moving(false)
                     .build();
         }
 
         return new CoverDevice.Builder()
                 .deviceId(f.deviceId()).deviceClass(DeviceClass.COVER).label(f.label())
-                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId())
+                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId()).providerId("openhab")
                 .position(f.position()).moving(false)
                 .build();
     }
@@ -132,7 +132,7 @@ public final class OpenHabDeviceBuilder {
     private static MediaPlayerDevice buildMediaPlayer(ResolvedDeviceFields f) {
         return MediaPlayerDevice.builder()
                 .deviceId(f.deviceId()).deviceClass(DeviceClass.MEDIA_PLAYER).label(f.label())
-                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId())
+                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId()).providerId("openhab")
                 .volume(f.volume())
                 .build();
     }
@@ -144,7 +144,7 @@ public final class OpenHabDeviceBuilder {
 
         return FanDevice.builder()
                 .deviceId(f.deviceId()).deviceClass(DeviceClass.FAN).label(f.label())
-                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId())
+                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId()).providerId("openhab")
                 .on(on)
                 .build();
     }
@@ -156,7 +156,7 @@ public final class OpenHabDeviceBuilder {
 
         return SensorDevice.builder()
                 .deviceId(f.deviceId()).deviceClass(DeviceClass.SENSOR).label(f.label())
-                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId())
+                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId()).providerId("openhab")
                 .sensorType(sensorType).numericValue(f.numericValue()).unit(f.unit())
                 .build();
     }
@@ -166,7 +166,7 @@ public final class OpenHabDeviceBuilder {
     private static PowerSensor buildPowerSensor(ResolvedDeviceFields f) {
         return PowerSensor.builder()
                 .deviceId(f.deviceId()).deviceClass(DeviceClass.POWER_SENSOR).label(f.label())
-                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId())
+                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId()).providerId("openhab")
                 .power(f.power()).energy(f.energy())
                 .build();
     }
@@ -178,7 +178,7 @@ public final class OpenHabDeviceBuilder {
 
         return PresenceSensor.builder()
                 .deviceId(f.deviceId()).deviceClass(DeviceClass.PRESENCE_SENSOR).label(f.label())
-                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId())
+                .available(f.available()).lastUpdated(f.now()).tenancyId(f.tenancyId()).providerId("openhab")
                 .present(present).lastSeen(f.now())
                 .build();
     }

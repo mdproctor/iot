@@ -31,7 +31,7 @@ public class SwitchDevice extends DeviceEntity {
     public SwitchDevice.Builder toBuilder() {
         return SwitchDevice.builder()
             .deviceId(deviceId()).deviceClass(deviceClass()).label(label())
-            .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId())
+            .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId()).providerId(providerId())
             .on(on);
     }
 

@@ -13,7 +13,7 @@ class CapabilitiesTest {
     private SwitchDevice sw(boolean on) {
         return SwitchDevice.builder()
             .deviceId("sw1").deviceClass(DeviceClass.SWITCH).label("Switch")
-            .available(true).lastUpdated(NOW).tenancyId("t1").on(on).build();
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test").on(on).build();
     }
 
     @Test
@@ -35,7 +35,7 @@ class CapabilitiesTest {
     void unavailableDeviceCapabilitiesShowsFalse() {
         var device = SwitchDevice.builder()
             .deviceId("sw1").deviceClass(DeviceClass.SWITCH).label("Switch")
-            .available(false).lastUpdated(NOW).tenancyId("t1").on(false).build();
+            .available(false).lastUpdated(NOW).tenancyId("t1").providerId("test").on(false).build();
         assertThat(device.capabilities().get(DeviceEntity.CAP_AVAILABLE)).isEqualTo(false);
     }
 
@@ -43,7 +43,7 @@ class CapabilitiesTest {
     void switchDeviceCapabilitiesContainsOnAndAvailable() {
         var device = SwitchDevice.builder()
             .deviceId("sw1").deviceClass(DeviceClass.SWITCH).label("Switch")
-            .available(true).lastUpdated(NOW).tenancyId("t1").on(true).build();
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test").on(true).build();
         var caps = device.capabilities();
         assertThat(caps).containsEntry(DeviceEntity.CAP_AVAILABLE, true);
         assertThat(caps).containsEntry(SwitchDevice.CAP_ON, true);
@@ -54,7 +54,7 @@ class CapabilitiesTest {
     void switchDeviceCapabilitiesReflectsOffState() {
         var device = SwitchDevice.builder()
             .deviceId("sw1").deviceClass(DeviceClass.SWITCH).label("Switch")
-            .available(true).lastUpdated(NOW).tenancyId("t1").on(false).build();
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test").on(false).build();
         assertThat(device.capabilities()).containsEntry(SwitchDevice.CAP_ON, false);
     }
 
@@ -62,7 +62,7 @@ class CapabilitiesTest {
     void lightDeviceCapabilitiesWithAllFields() {
         var device = new LightDevice.Builder()
             .deviceId("l1").deviceClass(DeviceClass.LIGHT).label("Light")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .on(true).brightness(200).colorTemp(4000).build();
         var caps = device.capabilities();
         assertThat(caps).containsEntry(DeviceEntity.CAP_AVAILABLE, true);
@@ -76,7 +76,7 @@ class CapabilitiesTest {
     void lightDeviceCapabilitiesNullOptionalFieldsIncludedAsNull() {
         var device = new LightDevice.Builder()
             .deviceId("l1").deviceClass(DeviceClass.LIGHT).label("Light")
-            .available(true).lastUpdated(NOW).tenancyId("t1").on(false).build();
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test").on(false).build();
         var caps = device.capabilities();
         assertThat(caps).containsKey(LightDevice.CAP_BRIGHTNESS);
         assertThat(caps.get(LightDevice.CAP_BRIGHTNESS)).isNull();
@@ -91,7 +91,7 @@ class CapabilitiesTest {
         var target = new Temperature(new BigDecimal("22"), Temperature.TemperatureUnit.CELSIUS);
         var device = new ThermostatDevice.Builder()
             .deviceId("th1").deviceClass(DeviceClass.THERMOSTAT).label("Thermostat")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .currentTemperature(current).targetTemperature(target).mode(ThermostatMode.HEAT).build();
         var caps = device.capabilities();
         assertThat(caps).containsEntry(DeviceEntity.CAP_AVAILABLE, true);
@@ -105,7 +105,7 @@ class CapabilitiesTest {
     void sensorDeviceCapabilitiesExcludesUnit() {
         var device = SensorDevice.builder()
             .deviceId("s1").deviceClass(DeviceClass.SENSOR).label("Sensor")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .sensorType(SensorType.TEMPERATURE)
             .numericValue(new BigDecimal("21.5")).unit("C").build();
         var caps = device.capabilities();
@@ -120,7 +120,7 @@ class CapabilitiesTest {
     void sensorDeviceCapabilitiesNullValues() {
         var device = SensorDevice.builder()
             .deviceId("s1").deviceClass(DeviceClass.SENSOR).label("Sensor")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .sensorType(SensorType.MOTION).build();
         var caps = device.capabilities();
         assertThat(caps.get(SensorDevice.CAP_NUMERIC_VALUE)).isNull();
@@ -131,7 +131,7 @@ class CapabilitiesTest {
     void presenceSensorCapabilities() {
         var device = PresenceSensor.builder()
             .deviceId("p1").deviceClass(DeviceClass.PRESENCE_SENSOR).label("Presence")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .present(true).lastSeen(NOW).build();
         var caps = device.capabilities();
         assertThat(caps).containsEntry(DeviceEntity.CAP_AVAILABLE, true);
@@ -144,7 +144,7 @@ class CapabilitiesTest {
     void powerSensorCapabilities() {
         var device = PowerSensor.builder()
             .deviceId("ps1").deviceClass(DeviceClass.POWER_SENSOR).label("Power")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .power(new BigDecimal("100")).energy(new BigDecimal("50")).build();
         var caps = device.capabilities();
         assertThat(caps).containsEntry(DeviceEntity.CAP_AVAILABLE, true);
@@ -157,7 +157,7 @@ class CapabilitiesTest {
     void powerSensorNullFieldsIncludedAsNull() {
         var device = PowerSensor.builder()
             .deviceId("ps1").deviceClass(DeviceClass.POWER_SENSOR).label("Power")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .power(new BigDecimal("100")).build();
         var caps = device.capabilities();
         assertThat(caps).containsKey(PowerSensor.CAP_POWER);
@@ -171,7 +171,7 @@ class CapabilitiesTest {
     void lockDeviceCapabilities() {
         var device = new LockDevice.Builder()
             .deviceId("lk1").deviceClass(DeviceClass.LOCK).label("Lock")
-            .available(true).lastUpdated(NOW).tenancyId("t1").locked(true).build();
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test").locked(true).build();
         var caps = device.capabilities();
         assertThat(caps).containsEntry(DeviceEntity.CAP_AVAILABLE, true);
         assertThat(caps).containsEntry(LockDevice.CAP_LOCKED, true);
@@ -182,7 +182,7 @@ class CapabilitiesTest {
     void coverDeviceCapabilities() {
         var device = new CoverDevice.Builder()
             .deviceId("cv1").deviceClass(DeviceClass.COVER).label("Cover")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .position(75).moving(false).build();
         var caps = device.capabilities();
         assertThat(caps).containsEntry(DeviceEntity.CAP_AVAILABLE, true);
@@ -195,7 +195,7 @@ class CapabilitiesTest {
     void coverDeviceNullPositionIncludedAsNull() {
         var device = new CoverDevice.Builder()
             .deviceId("cv1").deviceClass(DeviceClass.COVER).label("Cover")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .moving(false).build();
         var caps = device.capabilities();
         assertThat(caps).containsKey(CoverDevice.CAP_POSITION);
@@ -208,7 +208,7 @@ class CapabilitiesTest {
     void mediaPlayerDeviceCapabilities() {
         var device = MediaPlayerDevice.builder()
             .deviceId("mp1").deviceClass(DeviceClass.MEDIA_PLAYER).label("Player")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .playing(true).volume(80).build();
         var caps = device.capabilities();
         assertThat(caps).containsEntry(DeviceEntity.CAP_AVAILABLE, true);
@@ -221,7 +221,7 @@ class CapabilitiesTest {
     void mediaPlayerNullVolumeIncludedAsNull() {
         var device = MediaPlayerDevice.builder()
             .deviceId("mp1").deviceClass(DeviceClass.MEDIA_PLAYER).label("Player")
-            .available(true).lastUpdated(NOW).tenancyId("t1").playing(false).build();
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test").playing(false).build();
         assertThat(device.capabilities()).containsKey(MediaPlayerDevice.CAP_VOLUME);
         assertThat(device.capabilities().get(MediaPlayerDevice.CAP_VOLUME)).isNull();
     }
@@ -230,7 +230,7 @@ class CapabilitiesTest {
     void fanDeviceCapabilities() {
         var device = FanDevice.builder()
             .deviceId("f1").deviceClass(DeviceClass.FAN).label("Fan")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .on(true).speed(3).build();
         var caps = device.capabilities();
         assertThat(caps).containsEntry(DeviceEntity.CAP_AVAILABLE, true);

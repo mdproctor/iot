@@ -19,7 +19,7 @@ class SensorDeviceTest {
                 .label("Temperature Sensor")
                 .deviceClass(DeviceClass.SENSOR)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .sensorType(SensorType.TEMPERATURE)
                 .numericValue(new BigDecimal("22.5"))
                 .unit("C")
@@ -40,7 +40,7 @@ class SensorDeviceTest {
                 .label("Door Sensor")
                 .deviceClass(DeviceClass.SENSOR)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .sensorType(SensorType.DOOR_WINDOW)
                 .binaryValue(true)
                 .build();
@@ -60,7 +60,7 @@ class SensorDeviceTest {
                     .label("Temperature Sensor")
                     .deviceClass(DeviceClass.SENSOR)
                     .lastUpdated(TEST_INSTANT)
-                    .tenancyId("test-tenant")
+                    .tenancyId("test-tenant").providerId("test")
                     .numericValue(new BigDecimal("22.5"))
                     .build();
         });

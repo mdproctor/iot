@@ -27,7 +27,7 @@ class OpenHabFixtureEquivalenceTest {
             OpenHabLight.builder()
                 .deviceId("oh-light-1").deviceClass(DeviceClass.LIGHT)
                 .label("OH Color Light").available(true).lastUpdated(Fixtures.EPOCH)
-                .tenancyId(Fixtures.DEFAULT_TENANT)
+                .tenancyId(Fixtures.DEFAULT_TENANT).providerId("test")
                 .on(true).brightness(90)
                 .hsb(new OpenHabHsbType(
                     new BigDecimal("120"), new BigDecimal("100"), new BigDecimal("90")))
@@ -35,7 +35,7 @@ class OpenHabFixtureEquivalenceTest {
             OpenHabThermostat.builder()
                 .deviceId("oh-thermo-1").deviceClass(DeviceClass.THERMOSTAT)
                 .label("OH Climate").available(true).lastUpdated(Fixtures.EPOCH)
-                .tenancyId(Fixtures.DEFAULT_TENANT)
+                .tenancyId(Fixtures.DEFAULT_TENANT).providerId("test")
                 .currentTemperature(new Temperature(new BigDecimal("19"), Temperature.TemperatureUnit.CELSIUS))
                 .targetTemperature(new Temperature(new BigDecimal("21"), Temperature.TemperatureUnit.CELSIUS))
                 .mode(ThermostatMode.HEAT)
@@ -44,7 +44,7 @@ class OpenHabFixtureEquivalenceTest {
             OpenHabRollershutter.builder()
                 .deviceId("oh-cover-1").deviceClass(DeviceClass.COVER)
                 .label("OH Rollershutter").available(true).lastUpdated(Fixtures.EPOCH)
-                .tenancyId(Fixtures.DEFAULT_TENANT)
+                .tenancyId(Fixtures.DEFAULT_TENANT).providerId("test")
                 .position(25).moving(false).upDown(OpenHabUpDownType.STOP)
                 .build()
         );

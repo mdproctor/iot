@@ -45,7 +45,7 @@ public class HomeAssistantLock extends LockDevice {
     public Builder toBuilder() {
         return new Builder()
                 .deviceId(deviceId()).deviceClass(deviceClass()).label(label())
-                .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId())
+                .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId()).providerId("homeassistant")
                 .locked(isLocked())
                 .changedBy(changedBy).codeSlot(codeSlot);
     }

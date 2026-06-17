@@ -2,39 +2,65 @@ package io.casehub.iot.bridge.agent;
 
 import io.casehub.iot.api.CommandResult;
 import io.casehub.iot.api.DeviceCommand;
+import io.casehub.iot.api.DeviceEntity;
 import io.casehub.iot.api.spi.DeviceProvider;
+import io.casehub.iot.api.spi.DeviceRegistry;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
- * Receives commands from the cloud side and dispatches to the first available
- * local {@link DeviceProvider}. Commands arrive with local device IDs — the
- * server strips the tenancy prefix before sending.
+ * Receives commands from the cloud side and dispatches to the owning local
+ * {@link DeviceProvider}. Commands arrive with local device IDs — the server
+ * strips the tenancy prefix before sending. The target provider is resolved
+ * via {@link DeviceRegistry#findById(String)} and the device's {@code providerId}.
  */
 @ApplicationScoped
 public class BridgeCommandDispatcher {
 
-    private final List<DeviceProvider> providers;
+    private final Map<String, DeviceProvider> providerMap;
+    private final DeviceRegistry registry;
 
     @Inject
-    public BridgeCommandDispatcher(@Any Instance<DeviceProvider> discovered) {
-        this.providers = discovered.stream().toList();
+    public BridgeCommandDispatcher(@Any Instance<DeviceProvider> discovered, DeviceRegistry registry) {
+        this.providerMap = new HashMap<>();
+        for (DeviceProvider p : discovered) {
+            providerMap.put(p.providerId(), p);
+        }
+        this.registry = registry;
     }
 
-    /** Test constructor — accepts a pre-built provider list. */
-    BridgeCommandDispatcher(List<DeviceProvider> providers) {
-        this.providers = List.copyOf(providers);
+    /** Test constructor. */
+    BridgeCommandDispatcher(List<DeviceProvider> providers, DeviceRegistry registry) {
+        this.providerMap = new HashMap<>();
+        for (DeviceProvider p : providers) {
+            providerMap.put(p.providerId(), p);
+        }
+        this.registry = registry;
     }
 
     public Uni<CommandResult> dispatch(DeviceCommand command) {
-        if (providers.isEmpty()) {
+        if (providerMap.isEmpty()) {
             return Uni.createFrom().item(CommandResult.FAILED);
         }
-        return providers.get(0).dispatch(command);
+
+        Optional<DeviceEntity> device = registry.findById(command.targetDeviceId());
+        if (device.isEmpty()) {
+            return Uni.createFrom().item(CommandResult.FAILED);
+        }
+
+        DeviceProvider provider = providerMap.get(device.get().providerId());
+        if (provider == null) {
+            return Uni.createFrom().item(CommandResult.FAILED);
+        }
+
+        return provider.dispatch(command);
     }
 }

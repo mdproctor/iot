@@ -21,10 +21,10 @@ class MockDeviceRegistryTest {
         registry = new MockDeviceRegistry();
         registry.addDevice(SwitchDevice.builder()
             .deviceId("sw1").deviceClass(DeviceClass.SWITCH).label("Switch")
-            .available(true).lastUpdated(NOW).tenancyId("t1").on(false).build());
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test").on(false).build());
         registry.addDevice(new LightDevice.Builder()
             .deviceId("l1").deviceClass(DeviceClass.LIGHT).label("Light")
-            .available(true).lastUpdated(NOW).tenancyId("t1").on(false).build());
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test").on(false).build());
     }
 
     @Test
@@ -74,9 +74,9 @@ class MockDeviceRegistryTest {
         registry.clear();
         registry.addDevices(
             SwitchDevice.builder().deviceId("sw1").deviceClass(DeviceClass.SWITCH)
-                .label("S").available(true).lastUpdated(NOW).tenancyId("t1").on(false).build(),
+                .label("S").available(true).lastUpdated(NOW).tenancyId("t1").providerId("test").on(false).build(),
             new LightDevice.Builder().deviceId("l1").deviceClass(DeviceClass.LIGHT)
-                .label("L").available(true).lastUpdated(NOW).tenancyId("t1").on(false).build());
+                .label("L").available(true).lastUpdated(NOW).tenancyId("t1").providerId("test").on(false).build());
         assertThat(registry.findAll()).hasSize(2);
     }
 

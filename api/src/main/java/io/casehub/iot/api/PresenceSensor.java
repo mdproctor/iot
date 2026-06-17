@@ -41,7 +41,7 @@ public class PresenceSensor extends DeviceEntity {
     public PresenceSensor.Builder toBuilder() {
         return PresenceSensor.builder()
             .deviceId(deviceId()).deviceClass(deviceClass()).label(label())
-            .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId())
+            .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId()).providerId(providerId())
             .present(present).lastSeen(lastSeen);
     }
 

@@ -20,7 +20,7 @@ class LeafDeviceTest {
                 .label("Living Room Switch")
                 .deviceClass(DeviceClass.SWITCH)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .on(true)
                 .build();
 
@@ -41,7 +41,7 @@ class LeafDeviceTest {
                 .label("Bedroom Fan")
                 .deviceClass(DeviceClass.FAN)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .on(true)
                 .speed(3)
                 .build();
@@ -60,7 +60,7 @@ class LeafDeviceTest {
                 .label("Bedroom Fan")
                 .deviceClass(DeviceClass.FAN)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .on(false)
                 .build();
 
@@ -75,7 +75,7 @@ class LeafDeviceTest {
                 .label("Living Room TV")
                 .deviceClass(DeviceClass.MEDIA_PLAYER)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .playing(true)
                 .volume(75)
                 .build();
@@ -94,7 +94,7 @@ class LeafDeviceTest {
                 .label("Living Room TV")
                 .deviceClass(DeviceClass.MEDIA_PLAYER)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .playing(false)
                 .build();
 
@@ -109,7 +109,7 @@ class LeafDeviceTest {
                 .label("Hallway Motion")
                 .deviceClass(DeviceClass.PRESENCE_SENSOR)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .present(true)
                 .lastSeen(TEST_INSTANT)
                 .build();
@@ -128,7 +128,7 @@ class LeafDeviceTest {
                     .label("Hallway Motion")
                     .deviceClass(DeviceClass.PRESENCE_SENSOR)
                     .lastUpdated(TEST_INSTANT)
-                    .tenancyId("test-tenant")
+                    .tenancyId("test-tenant").providerId("test")
                     .present(true)
                     .build();
         });
@@ -141,7 +141,7 @@ class LeafDeviceTest {
                 .label("Main Circuit")
                 .deviceClass(DeviceClass.POWER_SENSOR)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .power(new BigDecimal("1500.50"))
                 .energy(new BigDecimal("3456.78"))
                 .build();
@@ -159,7 +159,7 @@ class LeafDeviceTest {
                 .label("Solar Panel")
                 .deviceClass(DeviceClass.POWER_SENSOR)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .power(new BigDecimal("3200"))
                 .build();
 
@@ -174,7 +174,7 @@ class LeafDeviceTest {
                 .label("Grid Meter")
                 .deviceClass(DeviceClass.POWER_SENSOR)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .energy(new BigDecimal("15.2"))
                 .build();
 

@@ -41,7 +41,7 @@ public class PowerSensor extends DeviceEntity {
     public PowerSensor.Builder toBuilder() {
         return PowerSensor.builder()
             .deviceId(deviceId()).deviceClass(deviceClass()).label(label())
-            .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId())
+            .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId()).providerId(providerId())
             .power(power).energy(energy);
     }
 

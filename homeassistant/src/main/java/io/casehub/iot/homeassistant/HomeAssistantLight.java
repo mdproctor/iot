@@ -57,7 +57,7 @@ public class HomeAssistantLight extends LightDevice {
     public Builder toBuilder() {
         return new Builder()
                 .deviceId(deviceId()).deviceClass(deviceClass()).label(label())
-                .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId())
+                .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId()).providerId("homeassistant")
                 .on(isOn()).brightness(brightness().orElse(null)).colorTemp(colorTemp().orElse(null))
                 .rgbColor(rgbColor).effect(effect)
                 .supportedColorModes(supportedColorModes.isEmpty() ? null : supportedColorModes);

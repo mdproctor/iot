@@ -40,7 +40,7 @@ public class MediaPlayerDevice extends DeviceEntity {
     public MediaPlayerDevice.Builder toBuilder() {
         return MediaPlayerDevice.builder()
             .deviceId(deviceId()).deviceClass(deviceClass()).label(label())
-            .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId())
+            .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId()).providerId(providerId())
             .playing(playing).volume(volume);
     }
 

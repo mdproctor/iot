@@ -32,6 +32,8 @@ public interface DeviceTypeHandler {
             ? Instant.parse(node.get("lastUpdated").asText()) : defaults.lastUpdated());
         builder.tenancyId(node.has("tenancyId")
             ? node.get("tenancyId").asText() : defaults.tenancyId());
+        builder.providerId(node.has("providerId")
+            ? node.get("providerId").asText() : "test");
         return builder;
     }
 }

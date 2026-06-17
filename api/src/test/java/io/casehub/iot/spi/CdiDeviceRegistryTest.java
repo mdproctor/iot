@@ -28,9 +28,9 @@ class CdiDeviceRegistryTest {
         @Override public Uni<List<DeviceEntity>> discover() {
             return Uni.createFrom().item(List.of(
                 SwitchDevice.builder().deviceId("sw1").deviceClass(DeviceClass.SWITCH)
-                    .label("Switch").available(true).lastUpdated(NOW).tenancyId("t1").on(true).build(),
+                    .label("Switch").available(true).lastUpdated(NOW).tenancyId("t1").providerId("test").on(true).build(),
                 new LightDevice.Builder().deviceId("l1").deviceClass(DeviceClass.LIGHT)
-                    .label("Light").available(true).lastUpdated(NOW).tenancyId("t2").on(true).brightness(200).build()
+                    .label("Light").available(true).lastUpdated(NOW).tenancyId("t2").providerId("test").on(true).brightness(200).build()
             ));
         }
         @Override public Uni<CommandResult> dispatch(DeviceCommand command) {

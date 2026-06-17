@@ -36,7 +36,7 @@ class DeviceTypeIdResolverTest {
     void roundTripSwitchDevice() throws Exception {
         SwitchDevice device = SwitchDevice.builder()
                 .deviceId("sw-1").deviceClass(DeviceClass.SWITCH).label("Kitchen Switch")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(true)
                 .build();
 
@@ -59,7 +59,7 @@ class DeviceTypeIdResolverTest {
     void roundTripLightDevice() throws Exception {
         LightDevice device = new LightDevice.Builder()
                 .deviceId("lt-1").deviceClass(DeviceClass.LIGHT).label("Living Room Light")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(true).brightness(200).colorTemp(4000)
                 .build();
 
@@ -82,7 +82,7 @@ class DeviceTypeIdResolverTest {
 
         ThermostatDevice device = new ThermostatDevice.Builder()
                 .deviceId("th-1").deviceClass(DeviceClass.THERMOSTAT).label("Main Thermostat")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .currentTemperature(current).targetTemperature(target).mode(ThermostatMode.HEAT)
                 .build();
 
@@ -101,7 +101,7 @@ class DeviceTypeIdResolverTest {
     void roundTripSensorDevice() throws Exception {
         SensorDevice device = SensorDevice.builder()
                 .deviceId("sn-1").deviceClass(DeviceClass.SENSOR).label("Outdoor Temp")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .sensorType(SensorType.TEMPERATURE)
                 .numericValue(new BigDecimal("18.3"))
                 .unit("C")
@@ -123,7 +123,7 @@ class DeviceTypeIdResolverTest {
     void roundTripPresenceSensor() throws Exception {
         PresenceSensor device = PresenceSensor.builder()
                 .deviceId("ps-1").deviceClass(DeviceClass.PRESENCE_SENSOR).label("Hallway Motion")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .present(true).lastSeen(NOW)
                 .build();
 
@@ -141,7 +141,7 @@ class DeviceTypeIdResolverTest {
     void roundTripPowerSensor() throws Exception {
         PowerSensor device = PowerSensor.builder()
                 .deviceId("pw-1").deviceClass(DeviceClass.POWER_SENSOR).label("Main Circuit")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .power(new BigDecimal("1500.50")).energy(new BigDecimal("3456.78"))
                 .build();
 
@@ -159,7 +159,7 @@ class DeviceTypeIdResolverTest {
     void roundTripLockDevice() throws Exception {
         LockDevice device = new LockDevice.Builder()
                 .deviceId("lk-1").deviceClass(DeviceClass.LOCK).label("Front Door")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .locked(true)
                 .build();
 
@@ -176,7 +176,7 @@ class DeviceTypeIdResolverTest {
     void roundTripCoverDevice() throws Exception {
         CoverDevice device = new CoverDevice.Builder()
                 .deviceId("cv-1").deviceClass(DeviceClass.COVER).label("Living Room Blind")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .position(75).moving(false)
                 .build();
 
@@ -194,7 +194,7 @@ class DeviceTypeIdResolverTest {
     void roundTripMediaPlayerDevice() throws Exception {
         MediaPlayerDevice device = MediaPlayerDevice.builder()
                 .deviceId("mp-1").deviceClass(DeviceClass.MEDIA_PLAYER).label("Living Room TV")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .playing(true).volume(75)
                 .build();
 
@@ -212,7 +212,7 @@ class DeviceTypeIdResolverTest {
     void roundTripFanDevice() throws Exception {
         FanDevice device = FanDevice.builder()
                 .deviceId("fn-1").deviceClass(DeviceClass.FAN).label("Bedroom Fan")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(true).speed(3)
                 .build();
 
@@ -241,6 +241,7 @@ class DeviceTypeIdResolverTest {
                     "available": true,
                     "lastUpdated": "2026-06-07T10:00:00Z",
                     "tenancyId": "t1",
+                    "providerId": "test",
                     "currentTemperature": {"value": 20.0, "unit": "CELSIUS"},
                     "targetTemperature": {"value": 22.0, "unit": "CELSIUS"},
                     "mode": "AUTO",
@@ -268,6 +269,7 @@ class DeviceTypeIdResolverTest {
                     "available": true,
                     "lastUpdated": "2026-06-07T10:00:00Z",
                     "tenancyId": "t1",
+                    "providerId": "test",
                     "on": true,
                     "brightness": 150,
                     "colorTemp": 3000,
@@ -294,7 +296,8 @@ class DeviceTypeIdResolverTest {
                     "label": "Bad Device",
                     "available": true,
                     "lastUpdated": "2026-06-07T10:00:00Z",
-                    "tenancyId": "t1"
+                    "tenancyId": "t1",
+                    "providerId": "test"
                 }
                 """;
 
@@ -313,7 +316,8 @@ class DeviceTypeIdResolverTest {
                     "label": "Bad Device",
                     "available": true,
                     "lastUpdated": "2026-06-07T10:00:00Z",
-                    "tenancyId": "t1"
+                    "tenancyId": "t1",
+                    "providerId": "test"
                 }
                 """;
 
@@ -338,6 +342,7 @@ class DeviceTypeIdResolverTest {
                         "available": true,
                         "lastUpdated": "2026-06-07T10:00:00Z",
                         "tenancyId": "t1",
+                        "providerId": "test",
                         "on": true
                     }
                     """;
@@ -357,13 +362,13 @@ class DeviceTypeIdResolverTest {
     void stateChangeEventRoundTrip() throws Exception {
         SwitchDevice before = SwitchDevice.builder()
                 .deviceId("sw-1").deviceClass(DeviceClass.SWITCH).label("Kitchen Switch")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(false)
                 .build();
 
         SwitchDevice after = SwitchDevice.builder()
                 .deviceId("sw-1").deviceClass(DeviceClass.SWITCH).label("Kitchen Switch")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(true)
                 .build();
 

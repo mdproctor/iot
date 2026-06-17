@@ -79,7 +79,7 @@ class BridgeDeviceProviderTest {
         SwitchDevice switchOn = SwitchDevice.builder()
                 .deviceId("switch-hallway-1").deviceClass(DeviceClass.SWITCH)
                 .label("Hallway Switch").available(true).lastUpdated(Fixtures.EPOCH)
-                .tenancyId(Fixtures.DEFAULT_TENANT).on(true).build();
+                .tenancyId(Fixtures.DEFAULT_TENANT).providerId("test").on(true).build();
 
         List<StateChangeEvent> events = provider.onSnapshot("site-a", List.of(switchOn));
 

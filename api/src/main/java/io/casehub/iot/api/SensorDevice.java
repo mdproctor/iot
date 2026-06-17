@@ -54,7 +54,7 @@ public class SensorDevice extends DeviceEntity {
     public SensorDevice.Builder toBuilder() {
         return SensorDevice.builder()
             .deviceId(deviceId()).deviceClass(deviceClass()).label(label())
-            .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId())
+            .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId()).providerId(providerId())
             .sensorType(sensorType).numericValue(numericValue).unit(unit).binaryValue(binaryValue);
     }
 

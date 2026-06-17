@@ -77,7 +77,7 @@ class FixturesTest {
         LockDevice unlocked = new LockDevice.Builder()
             .deviceId("lock-front-1").deviceClass(DeviceClass.LOCK)
             .label("Front Door Lock").available(true).lastUpdated(Fixtures.EPOCH)
-            .tenancyId(Fixtures.DEFAULT_TENANT).locked(false).build();
+            .tenancyId(Fixtures.DEFAULT_TENANT).providerId("test").locked(false).build();
         assertThat(unlocked.isLocked()).isFalse();
         assertThat(unlocked.deviceId()).isEqualTo("lock-front-1");
     }

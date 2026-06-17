@@ -40,7 +40,7 @@ class BridgeMessageSerializationTest {
     private SwitchDevice switchDevice(String id, boolean on) {
         return SwitchDevice.builder()
                 .deviceId(id).deviceClass(DeviceClass.SWITCH).label("Switch " + id)
-                .available(true).lastUpdated(NOW).tenancyId(TENANCY)
+                .available(true).lastUpdated(NOW).tenancyId(TENANCY).providerId("test")
                 .on(on)
                 .build();
     }

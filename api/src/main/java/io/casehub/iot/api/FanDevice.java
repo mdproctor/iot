@@ -40,7 +40,7 @@ public class FanDevice extends DeviceEntity {
     public FanDevice.Builder toBuilder() {
         return FanDevice.builder()
             .deviceId(deviceId()).deviceClass(deviceClass()).label(label())
-            .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId())
+            .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId()).providerId(providerId())
             .on(on).speed(speed);
     }
 

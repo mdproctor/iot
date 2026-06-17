@@ -20,7 +20,7 @@ class HomeAssistantSupplementTest {
     void lightBuildsWithAllSupplementFields() {
         HomeAssistantLight light = HomeAssistantLight.builder()
                 .deviceId("l1").deviceClass(DeviceClass.LIGHT).label("Kitchen Strip")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(true).brightness(200).colorTemp(4000)
                 .rgbColor(new int[]{255, 128, 0})
                 .effect("rainbow")
@@ -37,7 +37,7 @@ class HomeAssistantSupplementTest {
     void lightBuildsWithAbsentSupplementFields() {
         HomeAssistantLight light = HomeAssistantLight.builder()
                 .deviceId("l2").deviceClass(DeviceClass.LIGHT).label("Hallway Light")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(false)
                 .build();
 
@@ -50,7 +50,7 @@ class HomeAssistantSupplementTest {
     void lightCapabilitiesIncludeSupplementFields() {
         HomeAssistantLight light = HomeAssistantLight.builder()
                 .deviceId("l3").deviceClass(DeviceClass.LIGHT).label("Living Room")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(true).brightness(100).colorTemp(3500)
                 .rgbColor(new int[]{0, 0, 255})
                 .effect("strobe")
@@ -82,7 +82,7 @@ class HomeAssistantSupplementTest {
 
         HomeAssistantThermostat thermostat = HomeAssistantThermostat.builder()
                 .deviceId("t1").deviceClass(DeviceClass.THERMOSTAT).label("Main HVAC")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .currentTemperature(current).targetTemperature(target).mode(ThermostatMode.HEAT)
                 .presetMode("away")
                 .swingMode("vertical")
@@ -102,7 +102,7 @@ class HomeAssistantSupplementTest {
 
         HomeAssistantThermostat thermostat = HomeAssistantThermostat.builder()
                 .deviceId("t2").deviceClass(DeviceClass.THERMOSTAT).label("Upstairs HVAC")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .currentTemperature(current).targetTemperature(target).mode(ThermostatMode.COOL)
                 .presetMode("home")
                 .swingMode("horizontal")
@@ -130,7 +130,7 @@ class HomeAssistantSupplementTest {
     void lockBuildsWithSupplementFields() {
         HomeAssistantLock lock = HomeAssistantLock.builder()
                 .deviceId("k1").deviceClass(DeviceClass.LOCK).label("Front Door")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .locked(true)
                 .changedBy("mobile_app")
                 .codeSlot(3)
@@ -145,7 +145,7 @@ class HomeAssistantSupplementTest {
     void lockCapabilitiesIncludeSupplementFields() {
         HomeAssistantLock lock = HomeAssistantLock.builder()
                 .deviceId("k2").deviceClass(DeviceClass.LOCK).label("Back Door")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .locked(false)
                 .changedBy("keypad")
                 .codeSlot(7)
@@ -168,14 +168,14 @@ class HomeAssistantSupplementTest {
     void supplementDeriveChangedCapabilitiesDetectsSupplementFieldChange() {
         HomeAssistantLight before = HomeAssistantLight.builder()
                 .deviceId("l4").deviceClass(DeviceClass.LIGHT).label("Strip")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(true).brightness(200)
                 .effect("rainbow")
                 .build();
 
         HomeAssistantLight after = HomeAssistantLight.builder()
                 .deviceId("l4").deviceClass(DeviceClass.LIGHT).label("Strip")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(true).brightness(200)
                 .effect("strobe")
                 .build();

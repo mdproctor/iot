@@ -37,7 +37,7 @@ public class OpenHabRollershutter extends CoverDevice {
     public Builder toBuilder() {
         return new Builder()
                 .deviceId(deviceId()).deviceClass(deviceClass()).label(label())
-                .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId())
+                .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId()).providerId("openhab")
                 .position(position().orElse(null))
                 .moving(isMoving())
                 .upDown(upDown);

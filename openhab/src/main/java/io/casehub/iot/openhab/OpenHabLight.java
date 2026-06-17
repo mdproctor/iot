@@ -37,7 +37,7 @@ public class OpenHabLight extends LightDevice {
     public Builder toBuilder() {
         return new Builder()
                 .deviceId(deviceId()).deviceClass(deviceClass()).label(label())
-                .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId())
+                .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId()).providerId("openhab")
                 .on(isOn()).brightness(brightness().orElse(null)).colorTemp(colorTemp().orElse(null))
                 .hsb(hsb);
     }

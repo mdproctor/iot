@@ -46,7 +46,7 @@ class OpenHabJacksonModuleTest {
 
         OpenHabThermostat device = OpenHabThermostat.builder()
                 .deviceId("oh-th-1").deviceClass(DeviceClass.THERMOSTAT).label("OH Thermostat")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .currentTemperature(current).targetTemperature(target).mode(ThermostatMode.AUTO)
                 .heatingDemand(new BigDecimal("75.5")).coolingDemand(new BigDecimal("0.0"))
                 .build();
@@ -84,7 +84,7 @@ class OpenHabJacksonModuleTest {
 
         OpenHabLight device = OpenHabLight.builder()
                 .deviceId("oh-lt-1").deviceClass(DeviceClass.LIGHT).label("OH Light")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(true).brightness(150).colorTemp(3500)
                 .hsb(hsb)
                 .build();
@@ -116,7 +116,7 @@ class OpenHabJacksonModuleTest {
     void roundTripOpenHabRollershutter() throws Exception {
         OpenHabRollershutter device = OpenHabRollershutter.builder()
                 .deviceId("oh-cv-1").deviceClass(DeviceClass.COVER).label("OH Rollershutter")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .position(75).moving(false)
                 .upDown(OpenHabUpDownType.UP)
                 .build();

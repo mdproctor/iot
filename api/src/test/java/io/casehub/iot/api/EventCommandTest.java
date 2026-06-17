@@ -14,7 +14,7 @@ class EventCommandTest {
     private SwitchDevice switchDevice(String id, boolean on) {
         return SwitchDevice.builder()
             .deviceId(id).deviceClass(DeviceClass.SWITCH).label("Switch")
-            .available(true).lastUpdated(NOW).tenancyId("t1").on(on).build();
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test").on(on).build();
     }
 
     @Test

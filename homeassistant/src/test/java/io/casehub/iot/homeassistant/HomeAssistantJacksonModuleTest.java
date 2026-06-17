@@ -47,7 +47,7 @@ class HomeAssistantJacksonModuleTest {
 
         HomeAssistantThermostat device = HomeAssistantThermostat.builder()
                 .deviceId("ha-th-1").deviceClass(DeviceClass.THERMOSTAT).label("HA Thermostat")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .currentTemperature(current).targetTemperature(target).mode(ThermostatMode.HEAT)
                 .presetMode("comfort").hvacAction("heating").swingMode("vertical")
                 .build();
@@ -87,7 +87,7 @@ class HomeAssistantJacksonModuleTest {
     void roundTripHomeAssistantLight() throws Exception {
         HomeAssistantLight device = HomeAssistantLight.builder()
                 .deviceId("ha-lt-1").deviceClass(DeviceClass.LIGHT).label("HA Light")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(true).brightness(200).colorTemp(4000)
                 .rgbColor(new int[]{255, 128, 0}).effect("rainbow")
                 .build();
@@ -118,7 +118,7 @@ class HomeAssistantJacksonModuleTest {
     void roundTripHomeAssistantLock() throws Exception {
         HomeAssistantLock device = HomeAssistantLock.builder()
                 .deviceId("ha-lk-1").deviceClass(DeviceClass.LOCK).label("HA Lock")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .locked(true)
                 .changedBy("john_doe").codeSlot(3)
                 .build();

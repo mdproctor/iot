@@ -25,7 +25,7 @@ class DeviceEntityTest {
             .label("Test")
             .available(true)
             .lastUpdated(Instant.parse("2026-06-07T10:00:00Z"))
-            .tenancyId("tenant-1")
+            .tenancyId("tenant-1").providerId("test")
             .build();
     }
 
@@ -57,7 +57,7 @@ class DeviceEntityTest {
     void nullDeviceIdThrows() {
         assertThatThrownBy(() -> TestDevice.builder()
             .deviceClass(DeviceClass.SWITCH).label("X")
-            .available(true).lastUpdated(Instant.now()).tenancyId("t1")
+            .available(true).lastUpdated(Instant.now()).tenancyId("t1").providerId("test")
             .build()
         ).isInstanceOf(NullPointerException.class);
     }

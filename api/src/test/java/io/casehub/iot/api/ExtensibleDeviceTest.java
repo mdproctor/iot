@@ -20,7 +20,7 @@ class ExtensibleDeviceTest {
                 .label("Kitchen Light")
                 .deviceClass(DeviceClass.LIGHT)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .on(true)
                 .brightness(200)
                 .colorTemp(370)
@@ -41,7 +41,7 @@ class ExtensibleDeviceTest {
                 .label("Kitchen Light")
                 .deviceClass(DeviceClass.LIGHT)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .on(false)
                 .build();
 
@@ -57,7 +57,7 @@ class ExtensibleDeviceTest {
                 .label("Kitchen Light")
                 .deviceClass(DeviceClass.LIGHT)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .on(true)
                 .build();
 
@@ -74,7 +74,7 @@ class ExtensibleDeviceTest {
                 .label("Main Thermostat")
                 .deviceClass(DeviceClass.THERMOSTAT)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .currentTemperature(current)
                 .targetTemperature(target)
                 .mode(ThermostatMode.HEAT)
@@ -98,7 +98,7 @@ class ExtensibleDeviceTest {
                     .label("Main Thermostat")
                     .deviceClass(DeviceClass.THERMOSTAT)
                     .lastUpdated(TEST_INSTANT)
-                    .tenancyId("test-tenant")
+                    .tenancyId("test-tenant").providerId("test")
                     .targetTemperature(temp)
                     .mode(ThermostatMode.HEAT)
                     .build()
@@ -110,7 +110,7 @@ class ExtensibleDeviceTest {
                     .label("Main Thermostat")
                     .deviceClass(DeviceClass.THERMOSTAT)
                     .lastUpdated(TEST_INSTANT)
-                    .tenancyId("test-tenant")
+                    .tenancyId("test-tenant").providerId("test")
                     .currentTemperature(temp)
                     .mode(ThermostatMode.HEAT)
                     .build()
@@ -122,7 +122,7 @@ class ExtensibleDeviceTest {
                     .label("Main Thermostat")
                     .deviceClass(DeviceClass.THERMOSTAT)
                     .lastUpdated(TEST_INSTANT)
-                    .tenancyId("test-tenant")
+                    .tenancyId("test-tenant").providerId("test")
                     .currentTemperature(temp)
                     .targetTemperature(temp)
                     .build()
@@ -136,7 +136,7 @@ class ExtensibleDeviceTest {
                 .label("Front Door Lock")
                 .deviceClass(DeviceClass.LOCK)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .locked(true)
                 .build();
 
@@ -151,7 +151,7 @@ class ExtensibleDeviceTest {
                 .label("Front Door Lock")
                 .deviceClass(DeviceClass.LOCK)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .locked(false)
                 .build();
 
@@ -165,7 +165,7 @@ class ExtensibleDeviceTest {
                 .label("Living Room Blind")
                 .deviceClass(DeviceClass.COVER)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .position(75)
                 .moving(false)
                 .build();
@@ -183,7 +183,7 @@ class ExtensibleDeviceTest {
                 .label("Garage Door")
                 .deviceClass(DeviceClass.COVER)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .moving(false)
                 .build();
 
@@ -198,7 +198,7 @@ class ExtensibleDeviceTest {
                 .label("Living Room Blind")
                 .deviceClass(DeviceClass.COVER)
                 .lastUpdated(TEST_INSTANT)
-                .tenancyId("test-tenant")
+                .tenancyId("test-tenant").providerId("test")
                 .position(50)
                 .moving(true)
                 .build();
@@ -233,7 +233,7 @@ class ExtensibleDeviceTest {
     void supplementBuilderChainWorksAcrossInheritance() {
         var device = new TestSupplementLight.Builder()
             .deviceId("l1").deviceClass(DeviceClass.LIGHT).label("Test Light")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .on(true).brightness(200).colorTemp(4000)
             .extraField("vendor-specific")
             .build();

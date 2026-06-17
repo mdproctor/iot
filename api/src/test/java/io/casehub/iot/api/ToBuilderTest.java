@@ -18,7 +18,7 @@ class ToBuilderTest {
     void switchDeviceToBuilderRoundTrip() {
         var original = SwitchDevice.builder()
             .deviceId("sw1").deviceClass(DeviceClass.SWITCH).label("Switch")
-            .available(true).lastUpdated(NOW).tenancyId("t1").on(true).build();
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test").on(true).build();
         var copy = original.toBuilder().build();
         assertThat(copy.deviceId()).isEqualTo("sw1");
         assertThat(copy.deviceClass()).isEqualTo(DeviceClass.SWITCH);
@@ -33,7 +33,7 @@ class ToBuilderTest {
     void switchDeviceToBuilderModifyOn() {
         var original = SwitchDevice.builder()
             .deviceId("sw1").deviceClass(DeviceClass.SWITCH).label("Switch")
-            .available(true).lastUpdated(NOW).tenancyId("t1").on(true).build();
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test").on(true).build();
         SwitchDevice modified = original.toBuilder().on(false).build();
         assertThat(modified.isOn()).isFalse();
         assertThat(modified.deviceId()).isEqualTo("sw1");
@@ -44,7 +44,7 @@ class ToBuilderTest {
     void sensorDeviceToBuilderPreservesUnit() {
         var original = SensorDevice.builder()
             .deviceId("s1").deviceClass(DeviceClass.SENSOR).label("Sensor")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .sensorType(SensorType.TEMPERATURE)
             .numericValue(new BigDecimal("21.5")).unit("C").build();
         var copy = original.toBuilder().build();
@@ -57,7 +57,7 @@ class ToBuilderTest {
     void sensorDeviceToBuilderModifyNumericValue() {
         var original = SensorDevice.builder()
             .deviceId("s1").deviceClass(DeviceClass.SENSOR).label("Sensor")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .sensorType(SensorType.TEMPERATURE)
             .numericValue(new BigDecimal("21")).unit("C").build();
         SensorDevice modified = original.toBuilder().numericValue(new BigDecimal("22")).build();
@@ -69,7 +69,7 @@ class ToBuilderTest {
     void presenceSensorToBuilderRoundTrip() {
         var original = PresenceSensor.builder()
             .deviceId("p1").deviceClass(DeviceClass.PRESENCE_SENSOR).label("Presence")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .present(false).lastSeen(NOW).build();
         var copy = original.toBuilder().build();
         assertThat(copy.isPresent()).isFalse();
@@ -81,7 +81,7 @@ class ToBuilderTest {
     void powerSensorToBuilderRoundTrip() {
         var original = PowerSensor.builder()
             .deviceId("ps1").deviceClass(DeviceClass.POWER_SENSOR).label("Power")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .power(new BigDecimal("100")).energy(new BigDecimal("50")).build();
         var copy = original.toBuilder().build();
         assertThat(copy.power()).hasValue(new BigDecimal("100"));
@@ -93,7 +93,7 @@ class ToBuilderTest {
     void powerSensorToBuilderPreservesNullOptionals() {
         var original = PowerSensor.builder()
             .deviceId("ps1").deviceClass(DeviceClass.POWER_SENSOR).label("Power")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .power(new BigDecimal("100")).build();
         var copy = original.toBuilder().build();
         assertThat(copy.power()).hasValue(new BigDecimal("100"));
@@ -104,7 +104,7 @@ class ToBuilderTest {
     void mediaPlayerDeviceToBuilderModifyVolume() {
         var original = MediaPlayerDevice.builder()
             .deviceId("mp1").deviceClass(DeviceClass.MEDIA_PLAYER).label("Player")
-            .available(true).lastUpdated(NOW).tenancyId("t1")
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
             .playing(true).volume(80).build();
         MediaPlayerDevice modified = original.toBuilder().volume(60).build();
         assertThat(modified.volume()).hasValue(60);
@@ -116,7 +116,7 @@ class ToBuilderTest {
     void fanDeviceToBuilderModifySpeed() {
         var original = FanDevice.builder()
             .deviceId("f1").deviceClass(DeviceClass.FAN).label("Fan")
-            .available(true).lastUpdated(NOW).tenancyId("t1").on(true).speed(3).build();
+            .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test").on(true).speed(3).build();
         FanDevice modified = original.toBuilder().speed(5).build();
         assertThat(modified.speed()).hasValue(5);
         assertThat(modified.isOn()).isTrue();

@@ -26,7 +26,7 @@ class OpenHabSupplementTest {
 
         OpenHabLight light = OpenHabLight.builder()
                 .deviceId("l1").deviceClass(DeviceClass.LIGHT).label("Kitchen Strip")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(true).brightness(200).colorTemp(4000)
                 .hsb(hsb)
                 .build();
@@ -39,7 +39,7 @@ class OpenHabSupplementTest {
     void lightBuildsWithAbsentSupplementFields() {
         OpenHabLight light = OpenHabLight.builder()
                 .deviceId("l2").deviceClass(DeviceClass.LIGHT).label("Hallway Light")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(false)
                 .build();
 
@@ -56,7 +56,7 @@ class OpenHabSupplementTest {
 
         OpenHabLight light = OpenHabLight.builder()
                 .deviceId("l3").deviceClass(DeviceClass.LIGHT).label("Living Room")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(true).brightness(100).colorTemp(3500)
                 .hsb(hsb)
                 .build();
@@ -89,14 +89,14 @@ class OpenHabSupplementTest {
 
         OpenHabLight beforeLight = OpenHabLight.builder()
                 .deviceId("l4").deviceClass(DeviceClass.LIGHT).label("Strip")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(true).brightness(200)
                 .hsb(before)
                 .build();
 
         OpenHabLight afterLight = OpenHabLight.builder()
                 .deviceId("l4").deviceClass(DeviceClass.LIGHT).label("Strip")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(true).brightness(200)
                 .hsb(after)
                 .build();
@@ -115,7 +115,7 @@ class OpenHabSupplementTest {
 
         OpenHabLight original = OpenHabLight.builder()
                 .deviceId("l5").deviceClass(DeviceClass.LIGHT).label("Study")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .on(true).brightness(150).colorTemp(5000)
                 .hsb(hsb)
                 .build();
@@ -139,7 +139,7 @@ class OpenHabSupplementTest {
 
         OpenHabThermostat thermostat = OpenHabThermostat.builder()
                 .deviceId("t1").deviceClass(DeviceClass.THERMOSTAT).label("Main HVAC")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .currentTemperature(current).targetTemperature(target).mode(ThermostatMode.HEAT)
                 .heatingDemand(new BigDecimal("85.0"))
                 .coolingDemand(new BigDecimal("0.0"))
@@ -157,7 +157,7 @@ class OpenHabSupplementTest {
 
         OpenHabThermostat thermostat = OpenHabThermostat.builder()
                 .deviceId("t2").deviceClass(DeviceClass.THERMOSTAT).label("Upstairs HVAC")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .currentTemperature(current).targetTemperature(target).mode(ThermostatMode.COOL)
                 .build();
 
@@ -172,7 +172,7 @@ class OpenHabSupplementTest {
 
         OpenHabThermostat thermostat = OpenHabThermostat.builder()
                 .deviceId("t3").deviceClass(DeviceClass.THERMOSTAT).label("Basement HVAC")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .currentTemperature(current).targetTemperature(target).mode(ThermostatMode.COOL)
                 .heatingDemand(new BigDecimal("10.0"))
                 .coolingDemand(new BigDecimal("75.0"))
@@ -199,14 +199,14 @@ class OpenHabSupplementTest {
 
         OpenHabThermostat before = OpenHabThermostat.builder()
                 .deviceId("t4").deviceClass(DeviceClass.THERMOSTAT).label("Main")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .currentTemperature(current).targetTemperature(target).mode(ThermostatMode.HEAT)
                 .heatingDemand(new BigDecimal("50.0"))
                 .build();
 
         OpenHabThermostat after = OpenHabThermostat.builder()
                 .deviceId("t4").deviceClass(DeviceClass.THERMOSTAT).label("Main")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .currentTemperature(current).targetTemperature(target).mode(ThermostatMode.HEAT)
                 .heatingDemand(new BigDecimal("90.0"))
                 .build();
@@ -222,7 +222,7 @@ class OpenHabSupplementTest {
 
         OpenHabThermostat original = OpenHabThermostat.builder()
                 .deviceId("t5").deviceClass(DeviceClass.THERMOSTAT).label("Office")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .currentTemperature(current).targetTemperature(target).mode(ThermostatMode.AUTO)
                 .heatingDemand(new BigDecimal("30.0"))
                 .coolingDemand(new BigDecimal("0.0"))
@@ -244,7 +244,7 @@ class OpenHabSupplementTest {
     void rollershutterBuildsWithSupplementFields() {
         OpenHabRollershutter cover = OpenHabRollershutter.builder()
                 .deviceId("c1").deviceClass(DeviceClass.COVER).label("Bedroom Blinds")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .position(50).moving(false)
                 .upDown(OpenHabUpDownType.STOP)
                 .build();
@@ -257,7 +257,7 @@ class OpenHabSupplementTest {
     void rollershutterBuildsWithAbsentSupplementFields() {
         OpenHabRollershutter cover = OpenHabRollershutter.builder()
                 .deviceId("c2").deviceClass(DeviceClass.COVER).label("Living Room Curtains")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .position(100).moving(false)
                 .build();
 
@@ -268,7 +268,7 @@ class OpenHabSupplementTest {
     void rollershutterCapabilitiesIncludeSupplementFields() {
         OpenHabRollershutter cover = OpenHabRollershutter.builder()
                 .deviceId("c3").deviceClass(DeviceClass.COVER).label("Office Shades")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .position(25).moving(true)
                 .upDown(OpenHabUpDownType.UP)
                 .build();
@@ -288,14 +288,14 @@ class OpenHabSupplementTest {
     void rollershutterDeriveChangedCapabilitiesDetectsSupplementFieldChange() {
         OpenHabRollershutter before = OpenHabRollershutter.builder()
                 .deviceId("c4").deviceClass(DeviceClass.COVER).label("Garage Door")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .position(0).moving(false)
                 .upDown(OpenHabUpDownType.STOP)
                 .build();
 
         OpenHabRollershutter after = OpenHabRollershutter.builder()
                 .deviceId("c4").deviceClass(DeviceClass.COVER).label("Garage Door")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .position(0).moving(true)
                 .upDown(OpenHabUpDownType.UP)
                 .build();
@@ -308,7 +308,7 @@ class OpenHabSupplementTest {
     void rollershutterToBuilderRoundTripPreservesAllFields() {
         OpenHabRollershutter original = OpenHabRollershutter.builder()
                 .deviceId("c5").deviceClass(DeviceClass.COVER).label("Kitchen Blinds")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .position(75).moving(false)
                 .upDown(OpenHabUpDownType.DOWN)
                 .build();
@@ -325,7 +325,7 @@ class OpenHabSupplementTest {
     void rollershutterUpDownReturnsEmptyWhenNotSet() {
         OpenHabRollershutter cover = OpenHabRollershutter.builder()
                 .deviceId("c6").deviceClass(DeviceClass.COVER).label("Patio Door")
-                .available(true).lastUpdated(NOW).tenancyId("t1")
+                .available(true).lastUpdated(NOW).tenancyId("t1").providerId("test")
                 .position(33).moving(false)
                 .build();
 

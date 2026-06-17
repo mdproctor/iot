@@ -46,7 +46,7 @@ public class OpenHabThermostat extends ThermostatDevice {
     public Builder toBuilder() {
         return new Builder()
                 .deviceId(deviceId()).deviceClass(deviceClass()).label(label())
-                .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId())
+                .available(available()).lastUpdated(lastUpdated()).tenancyId(tenancyId()).providerId("openhab")
                 .currentTemperature(currentTemperature())
                 .targetTemperature(targetTemperature())
                 .mode(mode())
