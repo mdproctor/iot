@@ -1,5 +1,6 @@
 package io.casehub.iot.bridge.server;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.casehub.iot.api.CommandResult;
@@ -10,30 +11,35 @@ import io.casehub.iot.api.LightDevice;
 import io.casehub.iot.api.ProviderStatus;
 import io.casehub.iot.api.StateChangeEvent;
 import io.casehub.iot.api.SwitchDevice;
-import io.casehub.iot.api.ThermostatDevice;
+import io.casehub.iot.api.bridge.BridgeMessage;
 import io.casehub.iot.testing.Fixtures;
 import io.quarkus.websockets.next.WebSocketConnection;
+import io.smallrye.mutiny.Uni;
 import org.junit.jupiter.api.BeforeAll;
-
-import java.lang.reflect.Proxy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Proxy;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class BridgeDeviceProviderTest {
 
+    private static ObjectMapper mapper;
     private static DeviceIdNamespacer namespacer;
+    private static final BridgeServerConfig TEST_CONFIG = () -> 1;
 
     private BridgeConnectionRegistry registry;
     private BridgeDeviceProvider provider;
 
     @BeforeAll
-    static void initNamespacer() {
-        JsonMapper mapper = JsonMapper.builder()
+    static void initShared() {
+        mapper = JsonMapper.builder()
                 .addModule(new JavaTimeModule())
                 .build();
         namespacer = new DeviceIdNamespacer(mapper);
@@ -42,8 +48,10 @@ class BridgeDeviceProviderTest {
     @BeforeEach
     void setUp() {
         registry = new BridgeConnectionRegistry();
-        provider = new BridgeDeviceProvider(namespacer, registry);
+        provider = new BridgeDeviceProvider(namespacer, registry, mapper, TEST_CONFIG);
     }
+
+    // --- Snapshot and status tests (existing) ---
 
     @Test
     void providerIdIsBridge() {
@@ -68,7 +76,6 @@ class BridgeDeviceProviderTest {
         SwitchDevice switchOff = Fixtures.hallwaySwitch();
         provider.onSnapshot("site-a", List.of(switchOff));
 
-        // Second snapshot: switch is now on
         SwitchDevice switchOn = SwitchDevice.builder()
                 .deviceId("switch-hallway-1").deviceClass(DeviceClass.SWITCH)
                 .label("Hallway Switch").available(true).lastUpdated(Fixtures.EPOCH)
@@ -90,11 +97,9 @@ class BridgeDeviceProviderTest {
         SwitchDevice sw = Fixtures.hallwaySwitch();
         provider.onSnapshot("site-a", List.of(sw));
 
-        // Second snapshot adds a new light
         LightDevice light = Fixtures.livingRoomLight();
         List<StateChangeEvent> events = provider.onSnapshot("site-a", List.of(sw, light));
 
-        // Switch unchanged, light is new
         List<StateChangeEvent> newDeviceEvents = events.stream()
                 .filter(e -> e.after().deviceId().equals("site-a/light-living-1"))
                 .toList();
@@ -111,7 +116,6 @@ class BridgeDeviceProviderTest {
         LightDevice light = Fixtures.livingRoomLight();
         provider.onSnapshot("site-a", List.of(sw, light));
 
-        // Second snapshot: light removed
         List<StateChangeEvent> events = provider.onSnapshot("site-a", List.of(sw));
 
         List<StateChangeEvent> removedEvents = events.stream()
@@ -148,20 +152,10 @@ class BridgeDeviceProviderTest {
     }
 
     @Test
-    void dispatchFailsWhenAgentNotConnected() {
-        DeviceCommand cmd = DeviceCommand.turnOn("site-a/switch-hallway-1", Map.of(), "test", "corr-1");
-
-        CommandResult result = provider.dispatch(cmd).await().indefinitely();
-
-        assertThat(result).isEqualTo(CommandResult.FAILED);
-    }
-
-    @Test
     void snapshotNoEventsWhenUnchanged() {
         SwitchDevice sw = Fixtures.hallwaySwitch();
         provider.onSnapshot("site-a", List.of(sw));
 
-        // Same snapshot again — no changes
         List<StateChangeEvent> events = provider.onSnapshot("site-a", List.of(sw));
 
         assertThat(events).isEmpty();
@@ -181,10 +175,152 @@ class BridgeDeviceProviderTest {
                 .containsExactlyInAnyOrder("site-a/switch-hallway-1", "site-b/light-living-1");
     }
 
+    // --- Dispatch tests (new) ---
+
+    @Test
+    void dispatchSendsCommandAndCorrelatesResponse() {
+        List<String> sent = new ArrayList<>();
+        registry.register("site-a", mockSendableConnection(sent, Uni.createFrom().voidItem()));
+
+        DeviceCommand cmd = DeviceCommand.turnOn("site-a/switch-1", Map.of(), "test", "corr-1");
+
+        AtomicReference<CommandResult> resultRef = new AtomicReference<>();
+        provider.dispatch(cmd).subscribe().with(resultRef::set);
+
+        assertThat(sent).hasSize(1);
+
+        BridgeMessage message = deserialize(sent.get(0));
+        assertThat(message).isInstanceOf(BridgeMessage.Command.class);
+        BridgeMessage.Command cmdMsg = (BridgeMessage.Command) message;
+        assertThat(cmdMsg.tenancyId()).isEqualTo("site-a");
+        assertThat(cmdMsg.correlationId()).isEqualTo("corr-1");
+        assertThat(cmdMsg.command().targetDeviceId()).isEqualTo("switch-1");
+        assertThat(cmdMsg.command().action()).isEqualTo("turn_on");
+
+        provider.completeCommand("site-a", "corr-1", CommandResult.SENT);
+
+        assertThat(resultRef.get()).isEqualTo(CommandResult.SENT);
+    }
+
+    @Test
+    void dispatchFailsWhenAgentNotConnected() {
+        DeviceCommand cmd = DeviceCommand.turnOn("site-a/switch-hallway-1", Map.of(), "test", "corr-1");
+
+        CommandResult result = provider.dispatch(cmd).await().indefinitely();
+
+        assertThat(result).isEqualTo(CommandResult.FAILED);
+    }
+
+    @Test
+    void dispatchTimesOutWhenNoResponse() {
+        registry.register("site-a", mockSendableConnection(new ArrayList<>(), Uni.createFrom().voidItem()));
+
+        DeviceCommand cmd = DeviceCommand.turnOn("site-a/switch-1", Map.of(), "test", "corr-1");
+
+        CommandResult result = provider.dispatch(cmd).await().atMost(Duration.ofSeconds(5));
+
+        assertThat(result).isEqualTo(CommandResult.TIMEOUT);
+    }
+
+    @Test
+    void dispatchGeneratesCorrelationIdWhenNull() {
+        List<String> sent = new ArrayList<>();
+        registry.register("site-a", mockSendableConnection(sent, Uni.createFrom().voidItem()));
+
+        DeviceCommand cmd = new DeviceCommand("site-a/switch-1", "turn_on", Map.of(), "test", null);
+
+        provider.dispatch(cmd).subscribe().with(r -> {});
+
+        assertThat(sent).hasSize(1);
+        BridgeMessage.Command cmdMsg = (BridgeMessage.Command) deserialize(sent.get(0));
+        assertThat(cmdMsg.correlationId()).isNotNull().isNotBlank();
+        assertThat(cmdMsg.command().correlationId()).isEqualTo(cmdMsg.correlationId());
+    }
+
+    @Test
+    void dispatchFailsImmediatelyOnSendFailure() {
+        Uni<Void> failingSend = Uni.createFrom().failure(new RuntimeException("connection lost"));
+        registry.register("site-a", mockSendableConnection(new ArrayList<>(), failingSend));
+
+        DeviceCommand cmd = DeviceCommand.turnOn("site-a/switch-1", Map.of(), "test", "corr-1");
+
+        CommandResult result = provider.dispatch(cmd).await().atMost(Duration.ofSeconds(2));
+
+        assertThat(result).isEqualTo(CommandResult.FAILED);
+    }
+
+    @Test
+    void concurrentDispatchesResolveCorrectly() {
+        registry.register("site-a", mockSendableConnection(new ArrayList<>(), Uni.createFrom().voidItem()));
+
+        DeviceCommand cmd1 = DeviceCommand.turnOn("site-a/switch-1", Map.of(), "test", "corr-1");
+        DeviceCommand cmd2 = DeviceCommand.turnOff("site-a/switch-2", "test", "corr-2");
+
+        AtomicReference<CommandResult> result1 = new AtomicReference<>();
+        AtomicReference<CommandResult> result2 = new AtomicReference<>();
+        provider.dispatch(cmd1).subscribe().with(result1::set);
+        provider.dispatch(cmd2).subscribe().with(result2::set);
+
+        provider.completeCommand("site-a", "corr-2", CommandResult.SENT);
+        provider.completeCommand("site-a", "corr-1", CommandResult.FAILED);
+
+        assertThat(result1.get()).isEqualTo(CommandResult.FAILED);
+        assertThat(result2.get()).isEqualTo(CommandResult.SENT);
+    }
+
+    @Test
+    void lateResponseAfterTimeoutIsNoOp() {
+        registry.register("site-a", mockSendableConnection(new ArrayList<>(), Uni.createFrom().voidItem()));
+
+        DeviceCommand cmd = DeviceCommand.turnOn("site-a/switch-1", Map.of(), "test", "corr-1");
+
+        CommandResult result = provider.dispatch(cmd).await().atMost(Duration.ofSeconds(5));
+        assertThat(result).isEqualTo(CommandResult.TIMEOUT);
+
+        provider.completeCommand("site-a", "corr-1", CommandResult.SENT);
+    }
+
+    @Test
+    void crossTenancyResponseIsNoOp() {
+        registry.register("site-a", mockSendableConnection(new ArrayList<>(), Uni.createFrom().voidItem()));
+
+        DeviceCommand cmd = DeviceCommand.turnOn("site-a/switch-1", Map.of(), "test", "corr-1");
+
+        AtomicReference<CommandResult> resultRef = new AtomicReference<>();
+        provider.dispatch(cmd).subscribe().with(resultRef::set);
+
+        provider.completeCommand("site-b", "corr-1", CommandResult.SENT);
+
+        assertThat(resultRef.get()).isNull();
+    }
+
+    // --- Helpers ---
+
+    private BridgeMessage deserialize(String json) {
+        try {
+            return mapper.readValue(json, BridgeMessage.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to deserialize BridgeMessage", e);
+        }
+    }
+
     private static WebSocketConnection mockConnection() {
         return (WebSocketConnection) Proxy.newProxyInstance(
                 WebSocketConnection.class.getClassLoader(),
                 new Class[]{WebSocketConnection.class},
                 (proxy, method, args) -> null);
+    }
+
+    private static WebSocketConnection mockSendableConnection(List<String> sent, Uni<Void> sendResult) {
+        return (WebSocketConnection) Proxy.newProxyInstance(
+                WebSocketConnection.class.getClassLoader(),
+                new Class[]{WebSocketConnection.class},
+                (proxy, method, args) -> {
+                    if ("sendText".equals(method.getName()) && args != null && args.length == 1) {
+                        sent.add(args[0].toString());
+                        return sendResult;
+                    }
+                    return null;
+                });
     }
 }

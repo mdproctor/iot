@@ -2,7 +2,6 @@ package io.casehub.iot.bridge.agent;
 
 import io.casehub.iot.api.CommandResult;
 import io.casehub.iot.api.DeviceCommand;
-import io.casehub.iot.api.bridge.DeviceIdUtils;
 import io.casehub.iot.api.spi.DeviceProvider;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -13,8 +12,9 @@ import jakarta.inject.Inject;
 import java.util.List;
 
 /**
- * Receives commands from the cloud side, strips the tenancy prefix from the
- * device ID, and dispatches to the first available local {@link DeviceProvider}.
+ * Receives commands from the cloud side and dispatches to the first available
+ * local {@link DeviceProvider}. Commands arrive with local device IDs — the
+ * server strips the tenancy prefix before sending.
  */
 @ApplicationScoped
 public class BridgeCommandDispatcher {
@@ -31,24 +31,10 @@ public class BridgeCommandDispatcher {
         this.providers = List.copyOf(providers);
     }
 
-    /**
-     * Strip the tenancy prefix from the command's target device ID and dispatch
-     * to the first provider. Returns {@link CommandResult#FAILED} if no providers
-     * are available.
-     */
     public Uni<CommandResult> dispatch(DeviceCommand command) {
         if (providers.isEmpty()) {
             return Uni.createFrom().item(CommandResult.FAILED);
         }
-
-        String localId = DeviceIdUtils.stripPrefix(command.targetDeviceId());
-        DeviceCommand localCommand = new DeviceCommand(
-                localId,
-                command.action(),
-                command.parameters(),
-                command.dispatchedBy(),
-                command.correlationId());
-
-        return providers.get(0).dispatch(localCommand);
+        return providers.get(0).dispatch(command);
     }
 }

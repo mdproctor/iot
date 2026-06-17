@@ -13,14 +13,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 class BridgeCommandDispatcherTest {
 
     @Test
-    void dispatchStripsTenancyPrefix() {
+    void dispatchPassesCommandAsReceived() {
         var provider = new MockDeviceProvider("local-ha");
         provider.setDispatchResult(CommandResult.SENT);
 
         var dispatcher = new BridgeCommandDispatcher(List.of(provider));
 
         var command = new DeviceCommand(
-                "home-1/switch-1", "turn_on", Map.of(), "cloud", "corr-1");
+                "switch-1", "turn_on", Map.of(), "cloud", "corr-1");
 
         CommandResult result = dispatcher.dispatch(command).await().indefinitely();
 

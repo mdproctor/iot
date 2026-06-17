@@ -1,22 +1,28 @@
 package io.casehub.iot.bridge.server;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.casehub.iot.api.CommandResult;
 import io.casehub.iot.api.DeviceCommand;
 import io.casehub.iot.api.DeviceEntity;
 import io.casehub.iot.api.ProviderStatus;
 import io.casehub.iot.api.StateChangeEvent;
+import io.casehub.iot.api.bridge.BridgeMessage;
 import io.casehub.iot.api.bridge.DeviceIdUtils;
 import io.casehub.iot.api.spi.DeviceProvider;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.subscription.UniEmitter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -37,6 +43,8 @@ public class BridgeDeviceProvider implements DeviceProvider {
 
     private final DeviceIdNamespacer namespacer;
     private final BridgeConnectionRegistry registry;
+    private final ObjectMapper mapper;
+    private final BridgeServerConfig config;
 
     /**
      * Per-tenancy device maps. Outer key = tenancyId, inner key = namespaced deviceId.
@@ -44,10 +52,24 @@ public class BridgeDeviceProvider implements DeviceProvider {
     private final ConcurrentHashMap<String, Map<String, DeviceEntity>> tenancyDevices =
             new ConcurrentHashMap<>();
 
+    private final ConcurrentHashMap<String, UniEmitter<? super CommandResult>> pendingCommands =
+            new ConcurrentHashMap<>();
+
     @Inject
-    public BridgeDeviceProvider(DeviceIdNamespacer namespacer, BridgeConnectionRegistry registry) {
+    public BridgeDeviceProvider(DeviceIdNamespacer namespacer, BridgeConnectionRegistry registry,
+                                ObjectMapper mapper, BridgeServerConfig config) {
         this.namespacer = namespacer;
         this.registry = registry;
+        this.mapper = mapper;
+        this.config = config;
+    }
+
+    public void completeCommand(String tenancyId, String correlationId, CommandResult result) {
+        String compositeKey = tenancyId + "/" + correlationId;
+        UniEmitter<? super CommandResult> emitter = pendingCommands.remove(compositeKey);
+        if (emitter != null) {
+            emitter.complete(result);
+        }
     }
 
     @Override
@@ -68,16 +90,43 @@ public class BridgeDeviceProvider implements DeviceProvider {
 
     @Override
     public Uni<CommandResult> dispatch(DeviceCommand command) {
-        return Uni.createFrom().item(() -> {
-            String tenancyId = DeviceIdUtils.extractTenancyId(command.targetDeviceId());
-            if (registry.getSession(tenancyId).isEmpty()) {
-                return CommandResult.FAILED;
-            }
-            // WebSocket command dispatch not yet wired — see casehubio/iot#22
-            LOG.warnf("Command dispatch not yet implemented — returning FAILED [device=%s, action=%s]",
-                    command.targetDeviceId(), command.action());
-            return CommandResult.FAILED;
-        });
+        String tenancyId = DeviceIdUtils.extractTenancyId(command.targetDeviceId());
+        if (registry.getSession(tenancyId).isEmpty()) {
+            return Uni.createFrom().item(CommandResult.FAILED);
+        }
+
+        String correlationId = command.correlationId() != null
+                ? command.correlationId() : UUID.randomUUID().toString();
+        String localId = DeviceIdUtils.stripPrefix(command.targetDeviceId());
+        DeviceCommand localCommand = new DeviceCommand(
+                localId, command.action(), command.parameters(),
+                command.dispatchedBy(), correlationId);
+        BridgeMessage.Command bridgeCommand = new BridgeMessage.Command(
+                tenancyId, Instant.now(), correlationId, localCommand);
+
+        String json;
+        try {
+            json = mapper.writeValueAsString(bridgeCommand);
+        } catch (JsonProcessingException e) {
+            LOG.errorf(e, "Failed to serialize command [correlationId=%s]", correlationId);
+            return Uni.createFrom().item(CommandResult.FAILED);
+        }
+
+        var connection = registry.getSession(tenancyId).orElseThrow();
+        String compositeKey = tenancyId + "/" + correlationId;
+
+        return Uni.createFrom().<CommandResult>emitter(emitter -> {
+            pendingCommands.put(compositeKey, emitter);
+            connection.sendText(json).subscribe().with(
+                    success -> { },
+                    failure -> {
+                        pendingCommands.remove(compositeKey);
+                        emitter.complete(CommandResult.FAILED);
+                    });
+        })
+        .ifNoItem().after(Duration.ofSeconds(config.commandTimeoutSeconds()))
+        .recoverWithItem(CommandResult.TIMEOUT)
+        .onTermination().invoke(() -> pendingCommands.remove(compositeKey));
     }
 
     @Override

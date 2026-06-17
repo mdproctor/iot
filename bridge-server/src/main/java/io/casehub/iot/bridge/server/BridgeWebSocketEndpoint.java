@@ -95,6 +95,7 @@ public class BridgeWebSocketEndpoint {
             case BridgeMessage.CommandResponse cr -> {
                 LOG.debugf("Command result received [tenancyId=%s, correlationId=%s, result=%s]",
                         tenancyId, cr.correlationId(), cr.result());
+                provider.completeCommand(tenancyId, cr.correlationId(), cr.result());
             }
             case BridgeMessage.Heartbeat hb -> {
                 // No action required — heartbeats keep the connection alive
