@@ -8,6 +8,7 @@
         <groupId>io.casehub</groupId>
         <artifactId>casehub-parent</artifactId>
         <version>0.2-SNAPSHOT</version>
+        <relativePath/>
     </parent>
 
     <groupId>io.casehub</groupId>
@@ -37,6 +38,30 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <repositories>
+        <repository>
+            <id>github</id>
+            <name>casehubio GitHub Packages</name>
+            <url>https://maven.pkg.github.com/casehubio/*</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>casehubio GitHub Packages</name>
+            <url>https://maven.pkg.github.com/casehubio/iot</url>
+        </repository>
+        <snapshotRepository>
+            <id>github</id>
+            <name>casehubio GitHub Packages</name>
+            <url>https://maven.pkg.github.com/casehubio/iot</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <modules>
         <module>api</module>

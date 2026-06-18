@@ -3,11 +3,12 @@ package io.casehub.iot.homeassistant;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import io.casehub.iot.homeassistant.TestHttpServerResource.StubbedResponse;
+import io.casehub.iot.homeassistant.TestHttpServerResource.TestHttpServer;
 import io.casehub.iot.homeassistant.internal.HaServiceCallDto;
 
 import java.util.Map;
@@ -15,28 +16,30 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
-@QuarkusTestResource(MockWebServerResource.class)
+@QuarkusTestResource(TestHttpServerResource.class)
 class HomeAssistantRestClientTest {
 
     @Inject
     @RestClient
     HomeAssistantRestClient restClient;
 
-    private MockWebServer server() {
-        return MockWebServerResource.INSTANCE;
+    private TestHttpServer server() {
+        return TestHttpServerResource.INSTANCE;
+    }
+
+    @BeforeEach
+    void drainStaleRequests() {
+        server().drainRequests();
     }
 
     @Test
     void getStatesReturnsDeviceList() {
-        server().enqueue(new MockResponse()
-                .setResponseCode(200)
-                .setHeader("Content-Type", "application/json")
-                .setBody("""
-                        [
-                          {"entity_id":"light.kitchen","state":"on","last_updated":"2026-06-09T10:00:00Z","last_changed":"2026-06-09T09:55:00Z","attributes":{"friendly_name":"Kitchen"}},
-                          {"entity_id":"switch.hallway","state":"off","last_updated":"2026-06-09T10:00:00Z","last_changed":"2026-06-09T09:50:00Z","attributes":{}}
-                        ]
-                        """));
+        server().enqueue(StubbedResponse.json(200, """
+                [
+                  {"entity_id":"light.kitchen","state":"on","last_updated":"2026-06-09T10:00:00Z","last_changed":"2026-06-09T09:55:00Z","attributes":{"friendly_name":"Kitchen"}},
+                  {"entity_id":"switch.hallway","state":"off","last_updated":"2026-06-09T10:00:00Z","last_changed":"2026-06-09T09:50:00Z","attributes":{}}
+                ]
+                """));
 
         var states = restClient.getStates().await().indefinitely();
 
@@ -48,10 +51,7 @@ class HomeAssistantRestClientTest {
 
     @Test
     void callServiceReturnsResponse() {
-        server().enqueue(new MockResponse()
-                .setResponseCode(200)
-                .setHeader("Content-Type", "application/json")
-                .setBody("[]"));
+        server().enqueue(StubbedResponse.json(200, "[]"));
 
         var body = new HaServiceCallDto("light.kitchen", Map.of("brightness", 200));
         var response = restClient.callService("light", "turn_on", body)
@@ -61,32 +61,27 @@ class HomeAssistantRestClientTest {
     }
 
     @Test
-    void authorizationHeaderSent() throws InterruptedException {
-        server().enqueue(new MockResponse()
-                .setResponseCode(200)
-                .setHeader("Content-Type", "application/json")
-                .setBody("[]"));
+    void authorizationHeaderSent() {
+        server().enqueue(StubbedResponse.json(200, "[]"));
 
         restClient.getStates().await().indefinitely();
 
         var request = server().takeRequest();
-        assertThat(request.getHeader("Authorization")).startsWith("Bearer ");
-        assertThat(request.getHeader("Authorization")).isEqualTo("Bearer test-token");
+        assertThat(request).isNotNull();
+        assertThat(request.headers().getFirst("Authorization")).isEqualTo("Bearer test-token");
     }
 
     @Test
-    void callServiceSendsCorrectPath() throws InterruptedException {
-        server().enqueue(new MockResponse()
-                .setResponseCode(200)
-                .setHeader("Content-Type", "application/json")
-                .setBody("[]"));
+    void callServiceSendsCorrectPath() {
+        server().enqueue(StubbedResponse.json(200, "[]"));
 
         var body = new HaServiceCallDto("switch.hallway", Map.of());
         restClient.callService("switch", "turn_off", body)
                 .await().indefinitely();
 
         var request = server().takeRequest();
-        assertThat(request.getPath()).isEqualTo("/api/services/switch/turn_off");
-        assertThat(request.getMethod()).isEqualTo("POST");
+        assertThat(request).isNotNull();
+        assertThat(request.path()).isEqualTo("/api/services/switch/turn_off");
+        assertThat(request.method()).isEqualTo("POST");
     }
 }
