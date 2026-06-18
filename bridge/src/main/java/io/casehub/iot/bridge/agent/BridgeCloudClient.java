@@ -65,6 +65,8 @@ public class BridgeCloudClient {
                     LOG.warnf("Received ProviderStatusChange from cloud — status flows agent-to-server");
             case BridgeMessage.CommandResponse cr ->
                     LOG.warnf("Received CommandResponse from cloud — responses flow agent-to-server");
+            case BridgeMessage.ReplayedStateChange rsc ->
+                    LOG.warnf("Received ReplayedStateChange from cloud — replays flow agent-to-server");
         }
     }
 

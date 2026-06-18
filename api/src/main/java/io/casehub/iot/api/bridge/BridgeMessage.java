@@ -25,7 +25,8 @@ import java.util.Objects;
     @JsonSubTypes.Type(value = BridgeMessage.ProviderStatusChange.class, name = "PROVIDER_STATUS"),
     @JsonSubTypes.Type(value = BridgeMessage.Command.class, name = "COMMAND"),
     @JsonSubTypes.Type(value = BridgeMessage.CommandResponse.class, name = "COMMAND_RESULT"),
-    @JsonSubTypes.Type(value = BridgeMessage.Heartbeat.class, name = "HEARTBEAT")
+    @JsonSubTypes.Type(value = BridgeMessage.Heartbeat.class, name = "HEARTBEAT"),
+    @JsonSubTypes.Type(value = BridgeMessage.ReplayedStateChange.class, name = "REPLAYED_STATE_CHANGE")
 })
 public sealed interface BridgeMessage {
 
@@ -85,6 +86,15 @@ public sealed interface BridgeMessage {
         public Heartbeat {
             Objects.requireNonNull(tenancyId, "tenancyId");
             Objects.requireNonNull(timestamp, "timestamp");
+        }
+    }
+
+    record ReplayedStateChange(String tenancyId, Instant timestamp, StateChangeEvent event)
+            implements BridgeMessage {
+        public ReplayedStateChange {
+            Objects.requireNonNull(tenancyId, "tenancyId");
+            Objects.requireNonNull(timestamp, "timestamp");
+            Objects.requireNonNull(event, "event");
         }
     }
 }

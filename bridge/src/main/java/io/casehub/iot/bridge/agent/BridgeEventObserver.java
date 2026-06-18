@@ -13,11 +13,6 @@ import org.jboss.logging.Logger;
 
 import java.time.Instant;
 
-/**
- * Observes CDI events from local device providers and forwards them through
- * the bridge filter chain to the cloud endpoint. Events are only forwarded
- * when the WebSocket connection is active.
- */
 @ApplicationScoped
 public class BridgeEventObserver {
 
@@ -32,14 +27,13 @@ public class BridgeEventObserver {
     @Inject
     BridgeAgentConfig config;
 
-    void onStateChange(@ObservesAsync StateChangeEvent event) {
-        if (!connectionManager.isConnected()) {
-            return;
-        }
+    @Inject
+    BridgeEventStore eventStore;
 
+    void onStateChange(@ObservesAsync StateChangeEvent event) {
         FilterContext ctx = new FilterContext(
                 config.tenancyId(),
-                ConnectionState.CONNECTED,
+                connectionManager.isConnected() ? ConnectionState.CONNECTED : ConnectionState.DISCONNECTED,
                 event.providerId());
         FilterAction action = filterChain.execute(event, ctx).await().indefinitely();
 
@@ -47,7 +41,11 @@ public class BridgeEventObserver {
             case FilterAction.Forward f -> {
                 var msg = new BridgeMessage.StateChange(
                         config.tenancyId(), Instant.now(), event);
-                connectionManager.send(msg);
+                if (connectionManager.isConnected()) {
+                    connectionManager.send(msg);
+                } else {
+                    eventStore.store(msg);
+                }
             }
             case FilterAction.Suppress s ->
                     LOG.debugf("Event suppressed: %s", s.reason());

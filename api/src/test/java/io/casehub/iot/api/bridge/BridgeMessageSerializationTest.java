@@ -236,6 +236,7 @@ class BridgeMessageSerializationTest {
                 case BridgeMessage.Command m -> "command";
                 case BridgeMessage.CommandResponse m -> "command_result";
                 case BridgeMessage.Heartbeat m -> "heartbeat";
+                case BridgeMessage.ReplayedStateChange m -> "replayed_state_change";
             };
             assertThat(label).isNotEmpty();
         }

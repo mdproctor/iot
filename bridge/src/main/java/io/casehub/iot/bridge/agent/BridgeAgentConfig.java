@@ -20,4 +20,14 @@ public interface BridgeAgentConfig {
 
     @WithDefault("30")
     int heartbeatIntervalSeconds();
+
+    EventStore eventStore();
+
+    interface EventStore {
+        @WithDefault("10000")
+        int maxSize();
+
+        @WithDefault("data/bridge-events")
+        String directory();
+    }
 }

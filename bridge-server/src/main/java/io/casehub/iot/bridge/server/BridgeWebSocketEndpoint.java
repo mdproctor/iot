@@ -104,6 +104,10 @@ public class BridgeWebSocketEndpoint {
                 LOG.warnf("Received Command message from agent — commands flow server-to-agent, "
                         + "not agent-to-server [tenancyId=%s]", tenancyId);
             }
+            case BridgeMessage.ReplayedStateChange rsc -> {
+                LOG.debugf("Replayed event received [tenancyId=%s, device=%s]",
+                        tenancyId, rsc.event().after().deviceId());
+            }
         }
     }
 }

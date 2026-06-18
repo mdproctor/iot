@@ -52,6 +52,9 @@ public class BridgeConnectionManager {
     @Inject
     WebSocketConnector<BridgeCloudClient> connector;
 
+    @Inject
+    BridgeEventStore eventStore;
+
     private final AtomicReference<WebSocketClientConnection> connection = new AtomicReference<>();
 
     void onStartup(@Observes StartupEvent event) {
@@ -94,12 +97,29 @@ public class BridgeConnectionManager {
                     .connectAndAwait();
             connection.set(conn);
             LOG.infof("Bridge agent connected to %s", uri);
+            replayBufferedEvents();
             sendSnapshot();
         } catch (Exception e) {
             LOG.warnf("Failed to connect to cloud endpoint %s: %s",
                     uri, e.getMessage());
             scheduleReconnect(config.reconnectBaseSeconds());
         }
+    }
+
+    private void replayBufferedEvents() {
+        if (eventStore.isEmpty()) return;
+        List<BridgeMessage> buffered = eventStore.drain();
+        LOG.infof("Replaying %d buffered events", buffered.size());
+        for (BridgeMessage msg : buffered) {
+            send(markReplayed(msg));
+        }
+    }
+
+    private BridgeMessage markReplayed(BridgeMessage msg) {
+        if (msg instanceof BridgeMessage.StateChange sc) {
+            return new BridgeMessage.ReplayedStateChange(sc.tenancyId(), sc.timestamp(), sc.event());
+        }
+        return msg;
     }
 
     private void sendSnapshot() {
