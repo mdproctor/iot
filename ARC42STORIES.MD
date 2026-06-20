@@ -3,9 +3,9 @@
 **Spec:** Arc42Stories v0.1
 **Profile:** CaseHub — Foundation tier
 **Profile ref:** `../parent/docs/arc42stories-casehub-profile.md` · fallback: `https://raw.githubusercontent.com/casehubio/parent/main/docs/arc42stories-casehub-profile.md`
-**Build position:** Foundation — no casehubio dependencies
+**Build position:** Foundation — depends on casehub-platform-api (shared vocabulary)
 **Consumed by:** casehub-life (Layer 9), future property management, elder care apps
-**Depends on:** none
+**Depends on:** casehub-platform-api (types only, no runtime behaviour)
 **Prefix:** IOT
 **Status:** C1–C5 complete.
 
@@ -84,7 +84,7 @@ PREFIX: `IOT` (issues only — foundation-tier modules use issue refs directly)
 | Quarkus REST client reactive | OpenHAB SSE stream |
 | Quarkus CDI | Provider discovery via `@Any Instance<DeviceProvider>` |
 
-No casehubio dependencies. Foundation-tier peer to `casehub-connectors`.
+Depends on casehub-platform-api (shared vocabulary — types only, no runtime behaviour). Foundation-tier peer to `casehub-connectors`.
 
 ---
 

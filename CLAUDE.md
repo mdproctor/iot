@@ -25,7 +25,7 @@ mvn --batch-mode deploy -DskipTests
 
 | Module | Artifact | Purpose |
 |--------|----------|---------|
-| `api` | `casehub-iot-api` | Core SPIs (reactive `Uni<>`) and typed device class hierarchy — **public API, semver discipline** |
+| `api` | `casehub-iot-api` | Core SPIs (reactive `Uni<>`), typed device class hierarchy, and `IoTCloudEventAdapter` (`StateChangeEvent → CloudEvent`). Depends on `casehub-platform-api`. **Public API, semver discipline** |
 | `homeassistant` | `casehub-iot-homeassistant` | Home Assistant provider (REST + WebSocket) and HA supplement types |
 | `openhab` | `casehub-iot-openhab` | OpenHAB provider (REST + SSE, semantic model) and OpenHAB supplement types |
 | `testing` | `casehub-iot-testing` | MockDeviceProvider, fixture devices (Java `Fixtures` + YAML `DeviceFixtureLoader`), `DeviceTypeHandler` SPI, StateChangeEventPublisher — test scope only |
