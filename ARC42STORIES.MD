@@ -83,8 +83,10 @@ PREFIX: `IOT` (issues only — foundation-tier modules use issue refs directly)
 | Quarkus WebSocket Next client | HA WebSocket API (`/api/websocket`) |
 | Quarkus REST client reactive | OpenHAB SSE stream |
 | Quarkus CDI | Provider discovery via `@Any Instance<DeviceProvider>` |
+| Quarkus Jackson | CDI-managed `ObjectMapper` bean for `IoTCloudEventAdapter` JSON serialisation (compile dep on iot-api) |
+| CloudEvents SDK (`io.cloudevents:cloudevents-api`) | CloudEvent construction in `IoTCloudEventAdapter` (transitive via `casehub-platform-api`) |
 
-Depends on casehub-platform-api (shared vocabulary — types only, no runtime behaviour). Foundation-tier peer to `casehub-connectors`.
+Depends on casehub-platform-api (shared vocabulary + CloudEvents SDK — types only, no runtime behaviour). Foundation-tier peer to `casehub-connectors`.
 
 ---
 
@@ -137,13 +139,13 @@ C4Context
 | Layer | Concern | Module | Character |
 |---|---|---|---|
 | L1 | Device Type System | iot-api | Types, enums, value objects + Jackson serialization annotations (`@JsonTypeInfo`, `DeviceTypeIdResolver`). |
-| L2 | SPI & Registry | iot-api | CDI contracts (blocking SPIs), @DefaultBean CdiDeviceRegistry |
+| L2 | SPI & Registry | iot-api | CDI contracts (blocking SPIs), @DefaultBean CdiDeviceRegistry, IoTCloudEventAdapter (StateChangeEvent → CloudEvent) |
 | L3 | Home Assistant | iot-homeassistant | REST + WebSocket provider + supplement types |
 | L4 | OpenHAB | iot-openhab | REST + SSE + semantic model + state cache + supplement types |
 | L5 | Test Harness | iot-testing | Mock provider, fixture devices (Java `Fixtures` + YAML `DeviceFixtureLoader`), `DeviceTypeHandler` SPI, event publisher |
 | L6 | Bridge | iot-bridge + iot-bridge-server | Two-sided tunnel: local agent (event relay, filter chain) + cloud-side BridgeDeviceProvider |
 
-L1 and L2 both reside in `iot-api` but represent distinct architectural concerns: L1 is the vocabulary (types, enums, Jackson serialization annotations); L2 introduces CDI, Mutiny, and runtime behavior (the contracts). L1 now includes Jackson `@JsonTypeInfo` and `DeviceTypeIdResolver` — a deliberate boundary change from "zero framework dependency" to support polymorphic serialization across process boundaries. L6 spans two modules: `iot-bridge` (standalone Quarkus app for the local agent) and `iot-bridge-server` (library for the cloud-side provider).
+L1 and L2 both reside in `iot-api` but represent distinct architectural concerns: L1 is the vocabulary (types, enums, Jackson serialization annotations); L2 introduces CDI, Mutiny, and runtime behavior (the contracts). L1 now includes Jackson `@JsonTypeInfo` and `DeviceTypeIdResolver` — a deliberate boundary change from "zero framework dependency" to support polymorphic serialization across process boundaries. L2 includes `quarkus-jackson` as a compile dependency on iot-api — provides the CDI-managed `ObjectMapper` bean that `IoTCloudEventAdapter` injects for JSON serialisation. L6 spans two modules: `iot-bridge` (standalone Quarkus app for the local agent) and `iot-bridge-server` (library for the cloud-side provider).
 
 ### Chapter Sequencing Rationale
 
@@ -176,6 +178,7 @@ C4Container
     Container(provider, "DeviceProvider SPI", "CDI", "discover() + dispatch() + status()")
     Container(registry, "DeviceRegistry + CdiDeviceRegistry", "CDI", "findById + findByClass + findByTenancyId + findAll + refresh")
     Container(events, "StateChangeEvent + DeviceCommand", "Java records", "Platform-agnostic event and command model")
+    Container(ceadapter, "IoTCloudEventAdapter", "CDI", "@ObservesAsync StateChangeEvent → CloudEvent via CDI Event.fireAsync()")
   }
 
   Container_Boundary(b3, "Layer: Home Assistant (L3)") {
@@ -202,6 +205,7 @@ C4Container
   Rel(consumer, registry, "findByClass, findById, findAll")
   Rel(consumer, events, "@ObservesAsync StateChangeEvent")
   Rel(consumer, events, "dispatches DeviceCommand")
+  Rel(ceadapter, events, "@ObservesAsync StateChangeEvent → CloudEvent")
   Rel(registry, provider, "discover() at startup")
   Rel(haprov, provider, "implements DeviceProvider")
   Rel(ohprov, provider, "implements DeviceProvider")
@@ -216,6 +220,8 @@ casehub-iot/
 ├── iot-api/              L1 + L2: Core types + SPI (public API, semver)
 │   └── src/main/java/io/casehub/iot/
 │       ├── api/          L1: DeviceEntity, DeviceClass, typed subclasses, value types
+│       │   │             L2: IoTCloudEventAdapter (StateChangeEvent → CloudEvent)
+│       │   └── bridge/   Wire protocol: BridgeMessage sealed interface
 │       └── spi/          L2: CdiDeviceRegistry, NoOpDeviceRegistry
 ├── iot-homeassistant/    L3: Home Assistant provider
 │   └── src/main/java/io/casehub/iot/homeassistant/
@@ -223,8 +229,10 @@ casehub-iot/
 │   └── src/main/java/io/casehub/iot/openhab/
 ├── iot-testing/          L5: Test infrastructure (test-scope only)
 │   └── src/main/java/io/casehub/iot/testing/
-├── iot-bridge/           L6: Bridge runtime
+├── iot-bridge/           L6: Bridge local agent
 │   └── src/main/java/io/casehub/iot/bridge/
+├── iot-bridge-server/    L6: Bridge cloud-side provider
+│   └── src/main/java/io/casehub/iot/bridge/server/
 └── pom.xml               Parent POM
 ```
 
@@ -416,6 +424,21 @@ mvn --batch-mode deploy -DskipTests          # Publish to GitHub Packages (CI on
 | Device class vocabulary | [Matter Device Type Library](https://csa-iot.org/developer-resource/specifications-download-request/) |
 | Vendor supplement pattern | Extends common type only for fields with no cross-vendor equivalent |
 | Connection lifecycle | Exponential backoff: base 5s, max 5min, ProviderStatusEvent on transitions |
+| CloudEvent adapter | `IoTCloudEventAdapter` — `@ObservesAsync StateChangeEvent` → CloudEvent via `Event.fireAsync()` |
+
+### CloudEvent Adapter Pattern
+
+`IoTCloudEventAdapter` observes every `StateChangeEvent` and re-publishes it as a CloudEvent. Consumers that don't want coupling to iot-api types observe `@ObservesAsync CloudEvent` instead.
+
+- **Type:** `io.casehub.iot.state_change.{deviceClass}` — lowercase device class as suffix
+- **Source:** `/casehub-iot`
+- **Subject:** `device/{deviceId}`
+- **Data:** JSON-serialised `StateChangeEvent` (full before/after with `ObjectMapper`)
+- **Extensions:** `providerid`, `tenancyid` (when non-null)
+
+The adapter injects `ObjectMapper` via CDI (`quarkus-jackson` provides the `@ApplicationScoped` bean). Serialisation failures log at WARN and fire with empty data — never block the CDI event pipeline. `fireAsync()` failures are handled via `.exceptionally()`.
+
+This pattern is reusable across CaseHub modules: each domain publishes its own `{domain}.{eventType}.{subType}` CloudEvent type using the same CloudEvents SDK (`io.cloudevents:cloudevents-api` via `casehub-platform-api`).
 
 ### Vendor Supplement Pattern
 
@@ -751,13 +774,14 @@ Not closed here: provider contract (L2), platform integration (L3/L4), test infr
 #### What it adds
 
 **Before:** Device types exist (L1) but no way to discover, control, or observe them.
-**After:** `DeviceProvider` SPI for platform integration; `DeviceRegistry` SPI for device lookup; `StateChangeEvent` for state propagation; `DeviceCommand` for control. `CdiDeviceRegistry` discovers all providers at startup.
+**After:** `DeviceProvider` SPI for platform integration; `DeviceRegistry` SPI for device lookup; `StateChangeEvent` for state propagation; `DeviceCommand` for control. `CdiDeviceRegistry` discovers all providers at startup. `IoTCloudEventAdapter` bridges StateChangeEvent to CloudEvent for decoupled consumers.
 
 - **DeviceProvider SPI** — `discover()`, `dispatch()`, `status()` with Uni<> async contract
 - **DeviceRegistry SPI** — `findById()`, `findByClass()`, `findAll()`, `refresh()` with CdiDeviceRegistry default
 - **StateChangeEvent** — before/after DeviceEntity, changedCapabilities, occurredAt, providerId
 - **DeviceCommand** — targetDeviceId, action, parameters, dispatchedBy, correlationId
 - **ProviderStatusEvent** — fired via CDI on CONNECTED/CONNECTING/DISCONNECTED transitions
+- **IoTCloudEventAdapter** — `@ObservesAsync StateChangeEvent` → CloudEvent with type `io.casehub.iot.state_change.{deviceClass}`, data as JSON-serialised StateChangeEvent
 
 Not closed here: actual platform providers (L3/L4), test mocks (L5), bridge relay (L6).
 
@@ -781,6 +805,7 @@ Not closed here: actual platform providers (L3/L4), test mocks (L5), bridge rela
 - `iot-api/src/main/java/io/casehub/iot/api/ProviderStatus.java` — enum: CONNECTED, CONNECTING, DISCONNECTED
 - `iot-api/src/main/java/io/casehub/iot/api/ProviderStatusEvent.java` — record: providerId, previousStatus, currentStatus
 - `iot-api/src/main/java/io/casehub/iot/spi/CdiDeviceRegistry.java` — @ApplicationScoped @DefaultBean; volatile map swap + @ObservesAsync StateChangeEvent for freshness
+- `iot-api/src/main/java/io/casehub/iot/api/IoTCloudEventAdapter.java` — @ApplicationScoped; @ObservesAsync StateChangeEvent → CloudEvent via Event.fireAsync()
 
 #### Key wiring
 
@@ -788,6 +813,7 @@ Not closed here: actual platform providers (L3/L4), test mocks (L5), bridge rela
 - **`NoOpDeviceRegistry` for zero-provider deployments** — `@DefaultBean` active when no provider module is on the classpath. Returns empty collections from all methods.
 - **`Uni<>` on provider methods** — provider operations are I/O-bound (REST calls, WebSocket sends). Blocking signatures would stall the CDI container during discovery.
 - **`Event.fireAsync()` for StateChangeEvent** — observers discovered at startup. No subscription management. Standard Quarkus pattern. No backpressure — acceptable for IoT event frequency.
+- **`IoTCloudEventAdapter` bridges StateChangeEvent to CloudEvent** — injected `ObjectMapper` (from `quarkus-jackson` CDI bean) serialises the full event as JSON data. CloudEvent type uses `io.casehub.iot.state_change.{deviceClass}` convention. Serialisation failures degrade gracefully (WARN + empty data). `fireAsync()` failures handled via `.exceptionally()` — never blocks the CDI event pipeline.
 
 #### Architectural decisions
 
@@ -1253,6 +1279,9 @@ Decisions that span multiple layers or are cross-cutting. Layer-specific decisio
 | **Matter Device Type Library** | Industry-standard device categorization from the Matter smart home standard — DeviceClass vocabulary alignment source |
 | **Temperature** | Value type with explicit unit (Celsius/Fahrenheit) — prevents unit confusion across platforms |
 | **ThermostatMode** | Enum for thermostat operating mode: HEAT, COOL, AUTO, OFF, FAN_ONLY |
+| **IoTCloudEventAdapter** | `@ApplicationScoped` bean that observes `StateChangeEvent` and re-publishes as a CloudEvent with type `io.casehub.iot.state_change.{deviceClass}` — decouples consumers from iot-api types |
+| **CloudEvent** | CNCF standard envelope for event data (`io.cloudevents:cloudevents-api`) — used by `IoTCloudEventAdapter` to publish domain events in a vendor-neutral format |
+| **BridgeDeviceProvider** | Cloud-side `DeviceProvider` implementation in `iot-bridge-server` — remote devices appear local to cloud consumers via WebSocket tunnel |
 
 ---
 
