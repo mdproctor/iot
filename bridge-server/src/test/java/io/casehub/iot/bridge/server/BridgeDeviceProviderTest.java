@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.casehub.iot.api.CommandResult;
+import io.casehub.iot.api.bridge.BridgeAuditEvent;
+import jakarta.enterprise.event.Event;
 import io.casehub.iot.api.DeviceClass;
 import io.casehub.iot.api.DeviceCommand;
 import io.casehub.iot.api.DeviceEntity;
@@ -48,7 +50,8 @@ class BridgeDeviceProviderTest {
     @BeforeEach
     void setUp() {
         registry = new BridgeConnectionRegistry();
-        provider = new BridgeDeviceProvider(namespacer, registry, mapper, TEST_CONFIG);
+        Event<BridgeAuditEvent> mockAuditEvents = mockAuditEventEmitter();
+        provider = new BridgeDeviceProvider(namespacer, registry, mapper, TEST_CONFIG, mockAuditEvents);
     }
 
     // --- Snapshot and status tests (existing) ---
@@ -322,5 +325,13 @@ class BridgeDeviceProviderTest {
                     }
                     return null;
                 });
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Event<BridgeAuditEvent> mockAuditEventEmitter() {
+        return (Event<BridgeAuditEvent>) Proxy.newProxyInstance(
+                Event.class.getClassLoader(),
+                new Class[]{Event.class},
+                (proxy, method, args) -> null);
     }
 }

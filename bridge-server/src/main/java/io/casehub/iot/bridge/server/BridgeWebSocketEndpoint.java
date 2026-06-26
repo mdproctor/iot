@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.casehub.iot.api.ProviderStatusEvent;
 import io.casehub.iot.api.StateChangeEvent;
+import io.casehub.iot.api.bridge.BridgeAuditEvent;
+import io.casehub.iot.api.bridge.BridgeAuditEventType;
 import io.casehub.iot.api.bridge.BridgeMessage;
 import io.quarkus.websockets.next.CloseReason;
 import io.quarkus.websockets.next.OnClose;
@@ -15,6 +17,7 @@ import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -38,6 +41,7 @@ public class BridgeWebSocketEndpoint {
     @Inject BridgeConnectionRegistry connectionRegistry;
     @Inject Event<StateChangeEvent> stateEvents;
     @Inject Event<ProviderStatusEvent> statusEvents;
+    @Inject Event<BridgeAuditEvent> auditEvents;
 
     @OnOpen
     void onOpen(WebSocketConnection connection) {
@@ -49,6 +53,9 @@ public class BridgeWebSocketEndpoint {
             return;
         }
         connectionRegistry.register(tenancyId, connection);
+        auditEvents.fireAsync(new BridgeAuditEvent(
+                tenancyId, Instant.now(), BridgeAuditEventType.AGENT_CONNECTED,
+                null, null, null));
         LOG.infof("Bridge agent connected [tenancyId=%s, connectionId=%s]", tenancyId, connection.id());
     }
 
@@ -57,6 +64,9 @@ public class BridgeWebSocketEndpoint {
         String tenancyId = connection.handshakeRequest().header(TENANCY_HEADER);
         if (tenancyId != null && !tenancyId.isBlank()) {
             connectionRegistry.unregister(tenancyId);
+            auditEvents.fireAsync(new BridgeAuditEvent(
+                    tenancyId, Instant.now(), BridgeAuditEventType.AGENT_DISCONNECTED,
+                    null, null, null));
             LOG.infof("Bridge agent disconnected [tenancyId=%s, connectionId=%s]", tenancyId, connection.id());
         }
     }
@@ -80,19 +90,31 @@ public class BridgeWebSocketEndpoint {
 
         switch (message) {
             case BridgeMessage.StateChange sc -> {
+                auditEvents.fireAsync(new BridgeAuditEvent(
+                        tenancyId, Instant.now(), BridgeAuditEventType.STATE_CHANGE,
+                        null, sc.event().after().deviceId(), sc));
                 StateChangeEvent namespacedEvent = provider.onStateChange(sc.event(), tenancyId);
                 stateEvents.fireAsync(namespacedEvent);
             }
             case BridgeMessage.StateSnapshot ss -> {
+                auditEvents.fireAsync(new BridgeAuditEvent(
+                        tenancyId, Instant.now(), BridgeAuditEventType.STATE_SNAPSHOT,
+                        null, null, ss));
                 List<StateChangeEvent> events = provider.onSnapshot(tenancyId, ss.devices());
                 for (StateChangeEvent event : events) {
                     stateEvents.fireAsync(event);
                 }
             }
             case BridgeMessage.ProviderStatusChange ps -> {
+                auditEvents.fireAsync(new BridgeAuditEvent(
+                        tenancyId, Instant.now(), BridgeAuditEventType.PROVIDER_STATUS_CHANGE,
+                        null, null, ps));
                 statusEvents.fireAsync(ps.status());
             }
             case BridgeMessage.CommandResponse cr -> {
+                auditEvents.fireAsync(new BridgeAuditEvent(
+                        tenancyId, Instant.now(), BridgeAuditEventType.COMMAND_RESPONSE,
+                        cr.correlationId(), null, cr));
                 LOG.debugf("Command result received [tenancyId=%s, correlationId=%s, result=%s]",
                         tenancyId, cr.correlationId(), cr.result());
                 provider.completeCommand(tenancyId, cr.correlationId(), cr.result());
@@ -105,6 +127,9 @@ public class BridgeWebSocketEndpoint {
                         + "not agent-to-server [tenancyId=%s]", tenancyId);
             }
             case BridgeMessage.ReplayedStateChange rsc -> {
+                auditEvents.fireAsync(new BridgeAuditEvent(
+                        tenancyId, Instant.now(), BridgeAuditEventType.REPLAYED_STATE_CHANGE,
+                        null, rsc.event().after().deviceId(), rsc));
                 LOG.debugf("Replayed event received [tenancyId=%s, device=%s]",
                         tenancyId, rsc.event().after().deviceId());
             }

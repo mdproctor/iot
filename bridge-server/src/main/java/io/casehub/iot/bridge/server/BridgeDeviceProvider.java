@@ -7,12 +7,15 @@ import io.casehub.iot.api.DeviceCommand;
 import io.casehub.iot.api.DeviceEntity;
 import io.casehub.iot.api.ProviderStatus;
 import io.casehub.iot.api.StateChangeEvent;
+import io.casehub.iot.api.bridge.BridgeAuditEvent;
+import io.casehub.iot.api.bridge.BridgeAuditEventType;
 import io.casehub.iot.api.bridge.BridgeMessage;
 import io.casehub.iot.api.bridge.DeviceIdUtils;
 import io.casehub.iot.api.spi.DeviceProvider;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
 
@@ -45,6 +48,7 @@ public class BridgeDeviceProvider implements DeviceProvider {
     private final BridgeConnectionRegistry registry;
     private final ObjectMapper mapper;
     private final BridgeServerConfig config;
+    private final Event<BridgeAuditEvent> auditEvents;
 
     /**
      * Per-tenancy device maps. Outer key = tenancyId, inner key = namespaced deviceId.
@@ -57,11 +61,13 @@ public class BridgeDeviceProvider implements DeviceProvider {
 
     @Inject
     public BridgeDeviceProvider(DeviceIdNamespacer namespacer, BridgeConnectionRegistry registry,
-                                ObjectMapper mapper, BridgeServerConfig config) {
+                                ObjectMapper mapper, BridgeServerConfig config,
+                                Event<BridgeAuditEvent> auditEvents) {
         this.namespacer = namespacer;
         this.registry = registry;
         this.mapper = mapper;
         this.config = config;
+        this.auditEvents = auditEvents;
     }
 
     public void completeCommand(String tenancyId, String correlationId, CommandResult result) {
@@ -103,6 +109,10 @@ public class BridgeDeviceProvider implements DeviceProvider {
                 command.dispatchedBy(), correlationId);
         BridgeMessage.Command bridgeCommand = new BridgeMessage.Command(
                 tenancyId, Instant.now(), correlationId, localCommand);
+
+        auditEvents.fireAsync(new BridgeAuditEvent(
+                tenancyId, Instant.now(), BridgeAuditEventType.COMMAND_SENT,
+                correlationId, localId, bridgeCommand));
 
         String json;
         try {
