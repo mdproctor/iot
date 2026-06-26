@@ -1,0 +1,16 @@
+services:
+  bridge:
+    image: ghcr.io/casehubio/iot-bridge:latest
+    container_name: casehub-iot-bridge
+    network_mode: host
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data/bridge-events:/app/data/bridge-events
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/q/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

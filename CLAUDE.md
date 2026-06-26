@@ -39,6 +39,10 @@ mvn --batch-mode deploy -DskipTests
 - Device class vocabulary is aligned with the Matter Device Type Library.
 - `iot-testing` is never a compile or runtime dependency for downstream consumers — test scope only. Provider modules (HA, OpenHAB) use `<optional>true</optional>` to compile against `DeviceTypeHandler` without propagating transitively.
 - The bridge module has no domain logic — pure event forwarding and command relay.
+- Provider activation uses `@LookupIfProperty(name = "casehub.iot.<provider>.enabled", stringValue = "true")` — disabled providers are invisible to `Instance<DeviceProvider>`. All provider config properties must be `Optional<String>` to prevent SmallRye startup validation failure.
+- REST clients are created programmatically via `RestClientBuilder` (not `@RegisterRestClient`) — base URLs are resolved at runtime to support auto-discovery.
+- Single tenancy property: `casehub.iot.tenancy-id` — never per-module `tenancyId()` in `@ConfigMapping`.
+- Docker image: `ghcr.io/casehubio/iot-bridge` (JVM, multi-arch ARM64+x86_64). Deployment guide: `bridge/DEPLOYMENT.md`.
 
 ## Cross-Repo Conventions
 

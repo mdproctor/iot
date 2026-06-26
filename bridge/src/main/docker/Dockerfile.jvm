@@ -1,0 +1,15 @@
+FROM eclipse-temurin:21-jre-alpine
+
+ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en'
+
+RUN addgroup -S quarkus && adduser -S -G quarkus -u 1001 quarkus
+COPY --chown=1001 target/quarkus-app/lib/ /app/lib/
+COPY --chown=1001 target/quarkus-app/*.jar /app/
+COPY --chown=1001 target/quarkus-app/app/ /app/app/
+COPY --chown=1001 target/quarkus-app/quarkus/ /app/quarkus/
+
+EXPOSE 8080
+USER 1001
+
+ENTRYPOINT ["java", "-jar", "/app/quarkus-run.jar", \
+  "-Dquarkus.http.host=0.0.0.0"]
