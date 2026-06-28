@@ -15,4 +15,11 @@ public interface BridgeServerConfig {
      */
     @WithDefault("30")
     int commandTimeoutSeconds();
+
+    AuditStore auditStore();
+
+    interface AuditStore {
+        @WithDefault("10000")
+        int maxSize();
+    }
 }
