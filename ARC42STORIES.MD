@@ -7,7 +7,7 @@
 **Consumed by:** casehub-life (Layer 9), future property management, elder care apps
 **Depends on:** casehub-platform-api (types only, no runtime behaviour)
 **Prefix:** IOT
-**Status:** C1–C5 complete.
+**Status:** C1–C6 complete.
 
 ---
 
@@ -143,7 +143,7 @@ C4Context
 | L3 | Home Assistant | iot-homeassistant | REST + WebSocket provider + supplement types |
 | L4 | OpenHAB | iot-openhab | REST + SSE + semantic model + state cache + supplement types |
 | L5 | Test Harness | iot-testing | Mock provider, fixture devices (Java `Fixtures` + YAML `DeviceFixtureLoader`), `DeviceTypeHandler` SPI, event publisher |
-| L6 | Bridge | iot-bridge + iot-bridge-server | Two-sided tunnel: local agent (event relay, filter chain) + cloud-side BridgeDeviceProvider |
+| L6 | Bridge | iot-bridge + iot-bridge-server | Two-sided tunnel: local agent (event relay, CDI-discovered filter chain) + cloud-side BridgeDeviceProvider. Docker deployment (multi-arch image, Compose). Conditional provider activation via @LookupIfProperty. BridgeAuditEvent CDI events for operational + compliance audit trails. |
 
 L1 and L2 both reside in `iot-api` but represent distinct architectural concerns: L1 is the vocabulary (types, enums, Jackson serialization annotations); L2 introduces CDI, Mutiny, and runtime behavior (the contracts). L1 now includes Jackson `@JsonTypeInfo` and `DeviceTypeIdResolver` — a deliberate boundary change from "zero framework dependency" to support polymorphic serialization across process boundaries. L2 includes `quarkus-jackson` as a compile dependency on iot-api — provides the CDI-managed `ObjectMapper` bean that `IoTCloudEventAdapter` injects for JSON serialisation. L6 spans two modules: `iot-bridge` (standalone Quarkus app for the local agent) and `iot-bridge-server` (library for the cloud-side provider).
 
@@ -154,6 +154,7 @@ L1 and L2 both reside in `iot-api` but represent distinct architectural concerns
 - C3 before C4: HA is simpler (no state cache, no semantic model) — validates SPI against real platform data before tackling OpenHAB's higher complexity (minimal delta)
 - C4 after C3: OpenHAB state cache coalescing and semantic model mapping are informed by HA experience (soft ordering)
 - C5 after C3/C4: Bridge depends on iot-api + at least one working provider for integration testing (hard dependency)
+- C6 after C5: Bridge Operations requires working bridge infrastructure (hard — Docker image builds from bridge module, audit fires from bridge-server endpoints)
 
 ---
 
@@ -352,6 +353,59 @@ sequenceDiagram
   Bridge->>Cloud: WebSocket send(CommandResult)
 ```
 
+### Scenario 6 — Provider Auto-Discovery (mDNS/SSDP)
+
+Provider is enabled but no URL is configured. On first `discover()` or `status()` call, lazy init triggers mDNS/SSDP discovery to resolve the platform URL, then creates the REST client programmatically.
+
+```mermaid
+sequenceDiagram
+  participant App as CdiDeviceRegistry
+  participant Prov as HomeAssistantProvider
+  participant Init as getRestClient() [lazy init]
+  participant Cfg as HomeAssistantConfig
+  participant DNS as HomeAssistantDiscovery (JmDNS)
+  participant RCB as RestClientBuilder
+
+  App->>Prov: discover()
+  Prov->>Init: getRestClient() [first call]
+  Init->>Cfg: url() → Optional.empty()
+  Init->>DNS: resolve(timeoutSeconds)
+  DNS->>DNS: JmDNS.create() → listen for _home-assistant._tcp.local.
+  DNS-->>Init: "http://192.168.1.50:8123"
+  Init->>Cfg: token() → Optional.of("ha-token")
+  Init->>RCB: newBuilder().baseUri(resolvedUrl).register(BearerAuthFilter)
+  RCB-->>Init: HomeAssistantRestClient
+  Init-->>Prov: restClient
+  Prov->>Init: restClient.getStates()
+  Note over Prov: Subsequent calls reuse the cached restClient
+```
+
+OpenHAB follows the same pattern with `ensureSseConnected()` — tries mDNS first (`_openhab-server._tcp.local.`), falls back to SSDP (raw UDP multicast M-SEARCH on `239.255.255.250:1900`). Both providers have empty `@PostConstruct` methods — the implementation spec prescribed eager init, but the implementation chose lazy init to avoid startup races with test servers.
+
+### Scenario 7 — Bridge Audit Event Flow
+
+Bridge server fires `BridgeAuditEvent` for every protocol message. Multiple CDI observers process independently — operational logging always on, compliance ledger opt-in via classpath.
+
+```mermaid
+sequenceDiagram
+  participant Agent as Bridge Agent
+  participant WS as BridgeWebSocketEndpoint
+  participant CDI as CDI Event Bus
+  participant Log as LoggingBridgeAuditObserver
+  participant Future as [Future] ComplianceLedgerObserver
+
+  Agent->>WS: WebSocket message (STATE_CHANGE)
+  WS->>WS: deserialize → BridgeMessage.StateChange
+  WS->>CDI: Event<BridgeAuditEvent>.fireAsync(STATE_CHANGE, deviceId, message)
+  CDI->>Log: @ObservesAsync BridgeAuditEvent → structured JSON log
+  CDI->>Future: @ObservesAsync BridgeAuditEvent → LedgerEntry (opt-in)
+  WS->>CDI: Event<StateChangeEvent>.fireAsync(after namespace)
+  Note over WS: Audit fires BEFORE StateChangeEvent dispatch
+  Note over WS: REPLAYED_STATE_CHANGE fires audit but NOT StateChangeEvent
+```
+
+Firing points: `@OnOpen` (AGENT_CONNECTED), `@OnClose` (AGENT_DISCONNECTED), `@OnTextMessage` (STATE_CHANGE, REPLAYED_STATE_CHANGE, STATE_SNAPSHOT, PROVIDER_STATUS_CHANGE, COMMAND_RESPONSE), `BridgeDeviceProvider.dispatch()` (COMMAND_SENT). No HEARTBEAT audit — protocol noise.
+
 ---
 
 ## §7 Deployment View
@@ -393,15 +447,33 @@ Provider connects directly to HA/OpenHAB on the same machine or local network. N
 
 ### Mode 3 — Hybrid
 
-Bridge runs Drools locally for latency-sensitive reactions. StateChangeEvents also forwarded to cloud for orchestration, optimization, HITL, ledger, and memory.
+Latency-sensitive observers (Drools rules, YAML triggers) are added to the bridge deployment as classpath dependencies — standard Quarkus CDI extension. They fire locally via `@ObservesAsync StateChangeEvent` on the bridge's own CDI container. The bridge still forwards all events to cloud for orchestration, HITL, ledger, and memory. No bridge-specific configuration — "hybrid" is a deployment topology choice, not a bridge mode.
 
-```properties
-casehub.iot.bridge.cloud-endpoint=wss://casehub.io/bridge
-casehub.iot.bridge.tenant-id=<tenancy-id>
-casehub.iot.bridge.token=<bridge-auth-token>
-casehub.iot.bridge.local-automations=security-alert,presence-lights
-casehub.iot.bridge.cloud-automations=energy-optimization,morning-routine
 ```
+LOCAL:  bridge + iot-ha + life-triggers.jar  →  cloud: bridge-server + casehub-life
+```
+
+### Docker Deployment
+
+Image: `ghcr.io/casehubio/iot-bridge` — eclipse-temurin:21-jre-alpine, Quarkus fast-jar layout, non-root user (UID 1001). Multi-arch: ARM64 (Raspberry Pi 4/5) + x86_64 via `docker buildx` in GitHub Actions.
+
+Docker Compose (`bridge/docker-compose.yml`): single service, `network_mode: host` (required for mDNS/SSDP multicast discovery), named volume for persistent event store (`data/bridge-events/`), health check via `/q/health/ready`. Both HA and OpenHAB provider modules are on the classpath — each activates independently.
+
+Deployment guide: `bridge/DEPLOYMENT.md` — prerequisites, configuration reference, deploy/verify/update workflow, troubleshooting.
+
+### Provider Activation
+
+Both provider modules ship in a single Docker image. Activation is controlled by `@LookupIfProperty`:
+
+```java
+@ApplicationScoped
+@LookupIfProperty(name = "casehub.iot.homeassistant.enabled", stringValue = "true")
+public class HomeAssistantProvider implements DeviceProvider { ... }
+```
+
+When `enabled` is absent or not equal to `"true"`, the provider bean is not discoverable via `Instance<DeviceProvider>`. `CdiDeviceRegistry` and `BridgeCommandDispatcher` simply don't see it. No `@PostConstruct` runs. No REST client creation. No guard code needed — the provider doesn't exist.
+
+All provider config properties are `Optional<String>` — prevents SmallRye startup validation failure when a provider is disabled but its config properties are absent.
 
 ### Build Commands
 
@@ -486,13 +558,42 @@ This preserves OpenHAB's field-level precision and makes HA produce the same gra
 - **Cause:** Application dispatches without checking `ProviderStatus`.
 - **Fix:** Provider `dispatch()` returns `CommandResult.FAILED` immediately when status is DISCONNECTED. Application may also pre-check `provider.status()`.
 
+### Provider Activation Pattern
+
+`@LookupIfProperty(name = "casehub.iot.<provider>.enabled", stringValue = "true")` makes provider beans conditionally visible to CDI. When `enabled` is absent or not equal to `"true"`, the bean is not instantiated — no lazy init triggered, no REST client creation, no guard code. All provider consumption goes through `@Any Instance<DeviceProvider>`, which only sees enabled providers.
+
+All provider config properties (`url`, `token`, auth nested objects) are `Optional<String>`. SmallRye Config validates `@ConfigMapping` properties at startup regardless of bean lifecycle — required properties on a disabled provider crash the app before any `@PostConstruct` or `@LookupIfProperty` evaluation occurs.
+
+### TenancyId Consolidation
+
+Single `casehub.iot.tenancy-id` root property (env var `CASEHUB_IOT_TENANCY_ID`) replacing three per-module `tenancyId()` properties on `BridgeAgentConfig`, `HomeAssistantConfig`, `OpenHabConfig`. Every consumer injects via `@ConfigProperty(name = "casehub.iot.tenancy-id")` directly. One property, zero divergence risk.
+
+### Programmatic REST Client Creation
+
+`RestClientBuilder` replacing `@RegisterRestClient` property expressions for both HA and OpenHAB REST clients. Root cause: SmallRye resolves `${casehub.iot.homeassistant.url}` at config startup — before CDI starts, before `@LookupIfProperty` evaluates. Two failure modes:
+
+1. **Disabled provider with absent URL:** `Optional<String>` on the `@ConfigMapping` doesn't help — the property expression in `application.properties` is resolved by SmallRye directly. `NoSuchElementException` crashes the app.
+2. **Auto-discovery produces URL after REST client binding:** `@RestClient` base URL is immutable after config time. Discovery in lazy init resolves the URL too late.
+
+Fix: remove property expressions from `application.properties`, create REST clients programmatically in lazy init via `RestClientBuilder.newBuilder().baseUri(resolvedUrl).register(authFilter).build(...)`.
+
+**Gotcha:** `ClientHeadersFactory` (MicroProfile REST Client extension interface) is silently ignored by `RestClientBuilder.register()` — it is not a JAX-RS provider. No error, no auth header, 401 on every request. Auth must use `ClientRequestFilter` (a plain JAX-RS provider) instead. `OpenHabAuthHeadersFactory` was deleted and replaced by `OpenHabAuthFilter implements ClientRequestFilter`.
+
+### Bridge Audit Trail (Dual-Trail Pattern)
+
+`BridgeAuditEvent` CDI event type in `api/bridge/`. `BridgeAuditEventType` enum with 8 event types (no HEARTBEAT — protocol noise, not auditable). Operational observer (`LoggingBridgeAuditObserver`) always active when bridge-server is on the classpath — structured JSON logging queryable via log aggregation.
+
+Compliance observer is opt-in via classpath: a future `casehub-iot-bridge-ledger` module would contain an `@ObservesAsync BridgeAuditEvent` handler writing `BridgeLedgerEntry extends LedgerEntry`. Multiple CDI event observers coexist independently — the original design considered a `BridgeAuditStore` SPI, but CDI selects one SPI implementation (highest priority), while dual-trail requires BOTH operational logging AND compliance ledger active simultaneously.
+
+Structured query and retrieval of audit history (beyond log aggregation) is deferred to #35 (`BridgeAuditStore` SPI).
+
 ---
 
 ## §9.1 Journey Overview
 
 | Journey | Description | Chapters | Status |
 |---|---|---|---|
-| IoT Device Abstraction | From bare scaffold to deployable, tested, multi-platform device integration layer | 5 | Complete |
+| IoT Device Abstraction | From bare scaffold to deployable, tested, multi-platform device integration layer | 6 | Complete |
 
 ```mermaid
 flowchart LR
@@ -500,12 +601,14 @@ flowchart LR
   C2 --> C3["C3: Home Assistant\n+ L3"]
   C3 --> C4["C4: OpenHAB\n+ L4"]
   C4 --> C5["C5: Bridge\n+ L6"]
+  C5 --> C6["C6: Bridge Operations\nL3, L4, L6"]
 
   style C1 fill:#90EE90,color:#000
   style C2 fill:#90EE90,color:#000
-  style C3 fill:#D3D3D3,color:#000
-  style C4 fill:#D3D3D3,color:#000
+  style C3 fill:#90EE90,color:#000
+  style C4 fill:#90EE90,color:#000
   style C5 fill:#90EE90,color:#000
+  style C6 fill:#90EE90,color:#000
 ```
 
 ---
@@ -519,17 +622,18 @@ flowchart LR
 | 3 | Home Assistant | IoT Device Abstraction | + L3 | High | ✅ |
 | 4 | OpenHAB | IoT Device Abstraction | + L4 | High | ✅ |
 | 5 | Bridge | IoT Device Abstraction | + L6 | High | ✅ |
+| 6 | Bridge Operations | IoT Device Abstraction | L3, L4, L6, crosscutting | Low, Low, High | ✅ |
 
 ### Layer x Chapter Matrix
 
-| Layer | C1 | C2 | C3 | C4 | C5 |
-|---|---|---|---|---|---|
-| L1 Device Type System | High | Low | Low | Low | — |
-| L2 SPI & Registry | High | Low | Low | Low | Low |
-| L3 Home Assistant | — | — | High | — | Low |
-| L4 OpenHAB | — | — | — | High | Low |
-| L5 Test Harness | — | High | Low | Low | — |
-| L6 Bridge | — | — | — | — | High |
+| Layer | C1 | C2 | C3 | C4 | C5 | C6 |
+|---|---|---|---|---|---|---|
+| L1 Device Type System | High | Low | Low | Low | — | — |
+| L2 SPI & Registry | High | Low | Low | Low | Low | — |
+| L3 Home Assistant | — | — | High | — | Low | Low |
+| L4 OpenHAB | — | — | — | High | Low | Low |
+| L5 Test Harness | — | High | Low | Low | — | — |
+| L6 Bridge | — | — | — | — | High | High |
 
 L1 and L2 appear in C1–C4: foundational — real platform data in C3/C4 may surface type adjustments or SPI refinements. L5 appears in C2–C4: test harness grows as providers add fixtures. L3, L4, L6 are additive single-column entries — stable after introduction.
 
@@ -540,6 +644,7 @@ L1 and L2 appear in C1–C4: foundational — real platform data in C3/C4 may su
 - C3 before C4: HA is simpler (no state cache, no semantic model) — validates SPI against real platform data before OpenHAB's higher complexity (minimal delta — one platform concern vs two)
 - C4 after C3: OpenHAB state cache coalescing and semantic model mapping informed by HA implementation experience (soft — C4 could technically proceed independently)
 - C5 after C3/C4: Bridge requires at least one working provider for integration testing (hard — bridge forwards events from real providers)
+- C6 after C5: Bridge Operations requires working bridge infrastructure (hard — Docker image builds from bridge module, audit fires from bridge-server endpoints)
 
 ---
 
@@ -547,7 +652,7 @@ L1 and L2 appear in C1–C4: foundational — real platform data in C3/C4 may su
 
 ### Chapter 1 — Core API
 
-**Journey:** IoT Device Abstraction | **Sequence:** 1 of 5 | **Status:** ✅
+**Journey:** IoT Device Abstraction | **Sequence:** 1 of 6 | **Status:** ✅
 **Delivered:** 2026-06-07 | **Issues:** #1
 
 **What this delivers**
@@ -570,7 +675,7 @@ L1 and L2 appear in C1–C4: foundational — real platform data in C3/C4 may su
 
 ### Chapter 2 — Test Infrastructure
 
-**Journey:** IoT Device Abstraction | **Sequence:** 2 of 5 | **Status:** ✅
+**Journey:** IoT Device Abstraction | **Sequence:** 2 of 6 | **Status:** ✅
 **Delivered:** 2026-06-09 | **Issues:** #2
 
 **What this delivers**
@@ -602,7 +707,7 @@ L1 and L2 appear in C1–C4: foundational — real platform data in C3/C4 may su
 
 ### Chapter 3 — Home Assistant
 
-**Journey:** IoT Device Abstraction | **Sequence:** 3 of 5 | **Status:** ✅
+**Journey:** IoT Device Abstraction | **Sequence:** 3 of 6 | **Status:** ✅
 **Delivered:** 2026-06-12 | **Issues:** #3
 
 **What this delivers**
@@ -627,7 +732,7 @@ L1 and L2 appear in C1–C4: foundational — real platform data in C3/C4 may su
 
 ### Chapter 4 — OpenHAB
 
-**Journey:** IoT Device Abstraction | **Sequence:** 4 of 5 | **Status:** ✅
+**Journey:** IoT Device Abstraction | **Sequence:** 4 of 6 | **Status:** ✅
 **Delivered:** 2026-06-15 | **Issues:** #4
 
 **What this delivers**
@@ -653,7 +758,7 @@ L1 and L2 appear in C1–C4: foundational — real platform data in C3/C4 may su
 
 ### Chapter 5 — Bridge
 
-**Journey:** IoT Device Abstraction | **Sequence:** 5 of 5 | **Status:** ✅
+**Journey:** IoT Device Abstraction | **Sequence:** 5 of 6 | **Status:** ✅
 **Delivered:** 2026-06-17 | **Issues:** #5
 
 **What this delivers**
@@ -672,6 +777,33 @@ L1 and L2 appear in C1–C4: foundational — real platform data in C3/C4 may su
 | L2 SPI & Registry | Low — registry access for command routing |
 | L3 Home Assistant | Low — integration testing with HA provider |
 | L4 OpenHAB | Low — integration testing with OH provider |
+
+---
+
+### Chapter 6 — Bridge Operations
+
+**Journey:** IoT Device Abstraction | **Sequence:** 6 of 6 | **Status:** ✅
+**Delivered:** 2026-06-26 | **Issues:** #32, #33, #34
+
+**What this delivers**
+
+Production deployment artifact (Docker Compose + multi-arch image for ARM64 and x86_64), self-configuring providers (mDNS/SSDP auto-discovery when URL is not configured), and observable bridge operations (BridgeAuditEvent CDI events with dual-trail audit pattern). Cross-cutting: tenancyId consolidated to single `casehub.iot.tenancy-id` root property, REST clients migrated from `@RegisterRestClient` to programmatic `RestClientBuilder`, all provider config properties made `Optional<String>` for safe disabled-provider startup.
+
+**Accountability gaps closed**
+- No production deployment artifact → Docker Compose + Dockerfile.jvm + multi-arch CI build + DEPLOYMENT.md (L6)
+- No self-configuration → mDNS/SSDP auto-discovery, URL optional, lazy init on first use (L3, L4)
+- No audit trail → BridgeAuditEvent CDI events + LoggingBridgeAuditObserver with structured JSON (L6)
+- Config divergence risk (3 tenancyId properties) → single casehub.iot.tenancy-id (crosscutting)
+- Disabled provider crashes app (SmallRye validates required props at startup) → Optional config + @LookupIfProperty (L3, L4)
+- REST client URL baked at config time (incompatible with discovery) → programmatic RestClientBuilder (L3, L4)
+
+**Layer Impact**
+
+| Layer | Delta |
+|---|---|
+| L3 Home Assistant | Low — config properties Optional, @LookupIfProperty activation, mDNS discovery, programmatic RestClientBuilder, tenancyId removed from HomeAssistantConfig |
+| L4 OpenHAB | Low — same pattern as L3, plus SSDP fallback for discovery |
+| L6 Bridge | High — Docker deployment (Dockerfile.jvm, docker-compose.yml, DEPLOYMENT.md, multi-arch CI), BridgeAuditEvent + BridgeAuditEventType in api/bridge/, LoggingBridgeAuditObserver in bridge-server, @LookupIfProperty provider activation, tenancyId consolidation |
 
 ---
 
@@ -848,11 +980,11 @@ Not closed here: actual platform providers (L3/L4), test mocks (L5), bridge rela
 
 ### Layer — Home Assistant
 
-**Participates in chapters:** C3, C5
+**Participates in chapters:** C3, C5, C6
 **Architectural patterns:** REST Client, WebSocket Client, Strategy (entity mapping), Reconnection (exponential backoff)
 **Key protocols:** HA REST API v2, HA WebSocket API
 **Design refs:** `docs/superpowers/specs/2026-06-05-iot-foundation-design.md` §Home Assistant provider
-**Issues:** casehubio/iot#3
+**Issues:** casehubio/iot#3, casehubio/iot#33
 **Navigation:** `git log --grep="#3" --oneline`
 **Blog:** 🔲
 **Improvement refs:** 🔲
@@ -889,6 +1021,7 @@ Not closed here: OpenHAB support (L4), bridge relay (L6).
 - `iot-homeassistant/src/main/java/io/casehub/iot/homeassistant/HomeAssistantThermostat.java` — extends ThermostatDevice: presetMode, swingMode, hvacAction
 - `iot-homeassistant/src/main/java/io/casehub/iot/homeassistant/HomeAssistantLight.java` — extends LightDevice: rgbColor, effect, supportedColorModes
 - `iot-homeassistant/src/main/java/io/casehub/iot/homeassistant/HomeAssistantLock.java` — extends LockDevice: changedBy, codeSlot
+- `homeassistant/src/main/java/io/casehub/iot/homeassistant/HomeAssistantDiscovery.java` — mDNS discovery via JmDNS (_home-assistant._tcp.local.)
 
 #### Key wiring
 
@@ -913,7 +1046,7 @@ Not closed here: OpenHAB support (L4), bridge relay (L6).
 
 #### Gotchas
 
-🔲 at C3 close.
+- `@PostConstruct` discovery was planned (per bridge-ops spec) but implementation uses lazy init — double-checked locking in `getRestClient()`. Avoids startup races with test servers and defers network I/O until the provider is actually used by `CdiDeviceRegistry.discover()`.
 
 #### Pattern to replicate
 
@@ -930,11 +1063,11 @@ Not closed here: OpenHAB support (L4), bridge relay (L6).
 
 ### Layer — OpenHAB
 
-**Participates in chapters:** C4, C5
+**Participates in chapters:** C4, C5, C6
 **Architectural patterns:** REST Client, SSE Stream, State Cache with Coalescing, Semantic Model Mapping, Layered Discovery (Equipment + Thing), ResolvedDeviceFields shared construction
 **Key protocols:** OpenHAB REST API, OpenHAB SSE API, OpenHAB Semantic Model, OpenHAB Thing API
 **Design refs:** `docs/superpowers/specs/2026-06-05-iot-foundation-design.md` §OpenHAB provider, `docs/superpowers/specs/2026-06-14-thing-scoped-discovery-design.md`
-**Issues:** casehubio/iot#4, casehubio/iot#11, casehubio/iot#13
+**Issues:** casehubio/iot#4, casehubio/iot#11, casehubio/iot#13, casehubio/iot#33
 **Navigation:** `git log --grep="#4" --oneline`
 **Blog:** 🔲
 **Improvement refs:** 🔲
@@ -974,6 +1107,7 @@ Not closed here: bridge relay (L6).
 - `iot-openhab/src/main/java/io/casehub/iot/openhab/OpenHABThermostatItem.java` — extends ThermostatDevice: heatingDemand, coolingDemand
 - `iot-openhab/src/main/java/io/casehub/iot/openhab/OpenHABRollershutter.java` — extends CoverDevice: upDown
 - `iot-openhab/src/main/java/io/casehub/iot/openhab/OpenHABColorItem.java` — extends LightDevice: hsb
+- `openhab/src/main/java/io/casehub/iot/openhab/OpenHabDiscovery.java` — mDNS (_openhab-server._tcp.local.) + SSDP fallback (raw UDP multicast)
 
 #### Key wiring
 
@@ -998,7 +1132,7 @@ Not closed here: bridge relay (L6).
 
 #### Gotchas
 
-🔲 at C4 close.
+- Same lazy init pattern as HA — `ensureSseConnected()` with double-checked locking replaces planned `@PostConstruct` discovery. Also creates REST client and SSE client programmatically on first use.
 
 #### Pattern to replicate
 
@@ -1103,11 +1237,11 @@ Not closed here: real platform integration (L3/L4), bridge (L6). YAML fixture lo
 
 ### Layer — Bridge
 
-**Participates in chapters:** C5
+**Participates in chapters:** C5, C6
 **Architectural patterns:** Two-Sided Tunnel (DeviceProvider SPI), CDI-Discovered Filter Chain, Sealed Interface Wire Protocol, Server-Side Device ID Namespacing, Compound Type ID with Graceful Degradation
 **Key protocols:** WebSocket (Quarkus WebSocket Next) for cloud relay; TLS + auth token; compound `@deviceType` serialization
 **Design refs:** `docs/superpowers/specs/2026-06-16-bridge-runtime-design.md`
-**Issues:** casehubio/iot#5
+**Issues:** casehubio/iot#5, casehubio/iot#32, casehubio/iot#33, casehubio/iot#34
 **Navigation:** `git log --grep="#5" --oneline`
 **Blog:** 🔲
 **Improvement refs:** casehubio/iot#20 (durable store-and-forward), casehubio/iot#22 (WebSocket command dispatch), casehubio/iot#23 (multi-provider routing)
@@ -1119,11 +1253,15 @@ Not closed here: real platform integration (L3/L4), bridge (L6). YAML fixture lo
 **After:** Two-module bridge — `casehub-iot-bridge` (local agent) + `casehub-iot-bridge-server` (cloud-side `BridgeDeviceProvider implements DeviceProvider`). Remote devices look local to cloud consumers. CDI-discovered event filter chain on the agent. Server-side device ID namespacing for multi-site deployments.
 
 - **Two-sided tunnel** — `BridgeDeviceProvider` implements `DeviceProvider` SPI. Cloud consumers observe `@ObservesAsync StateChangeEvent` without bridge-specific code.
-- **Sealed BridgeMessage** — 6 record variants (StateChange, StateSnapshot, ProviderStatusChange, Command, CommandResponse, Heartbeat) with exhaustive pattern matching. Wire format names: STATE_CHANGE, STATE_SNAPSHOT, PROVIDER_STATUS, COMMAND, COMMAND_RESULT, HEARTBEAT.
+- **Sealed BridgeMessage** — 7 record variants (StateChange, StateSnapshot, ProviderStatusChange, Command, CommandResponse, Heartbeat, ReplayedStateChange) with exhaustive pattern matching. Wire format names: STATE_CHANGE, STATE_SNAPSHOT, PROVIDER_STATUS, COMMAND, COMMAND_RESULT, HEARTBEAT, REPLAYED_STATE_CHANGE.
 - **Compound type ID** — `DeviceTypeIdResolver` with `"{DeviceClass}:{ClassName}"` format. Graceful degradation: unknown supplement types fall back to common parent via DeviceClass prefix.
 - **CDI-discovered filter chain** — `BridgeEventFilter` SPI processes `StateChangeEvent` before relay. No filters registered → forward all.
 - **Server-side namespacing** — `DeviceIdNamespacer` (Jackson tree copy) prepends `{tenancyId}/` to device IDs. Prevents collision in multi-site deployments.
 - **Snapshot-only reconnection** — no event buffer. On reconnect, fresh `STATE_SNAPSHOT` via `discover()`.
+- **Docker deployment (C6)** — `Dockerfile.jvm` (Temurin 21-jre-alpine, fast-jar, non-root UID 1001), `docker-compose.yml` (host network, event store volume, health check), `.env.example`, multi-arch CI build (ARM64 + x86_64). Deployment guide: `bridge/DEPLOYMENT.md`.
+- **BridgeAuditEvent CDI events (C6)** — `BridgeAuditEvent` record + `BridgeAuditEventType` enum (8 types, no HEARTBEAT) in `api/bridge/`. `LoggingBridgeAuditObserver` in bridge-server produces structured JSON. Dual-trail: operational logging always on, compliance ledger opt-in via classpath.
+- **Provider activation (C6)** — `@LookupIfProperty` on both providers. Single Docker image, each provider enabled independently. All config properties `Optional<String>`.
+- **TenancyId consolidation (C6)** — single `casehub.iot.tenancy-id` root property replacing three per-module `tenancyId()` properties.
 
 Not closed here: Drools integration for hybrid local automations (deployment topology, not bridge feature). Durable store-and-forward (#20). WebSocket command dispatch (#22).
 
@@ -1147,6 +1285,12 @@ Not closed here: Drools integration for hybrid local automations (deployment top
 - `bridge-server/src/main/java/io/casehub/iot/bridge/server/DeviceIdNamespacer.java` — Jackson tree copy for ID namespacing
 - `api/src/main/java/io/casehub/iot/api/DeviceTypeIdResolver.java` — compound type ID resolver
 - `api/src/main/java/io/casehub/iot/api/bridge/BridgeMessage.java` — sealed interface, 6 variants
+- `api/src/main/java/io/casehub/iot/api/bridge/BridgeAuditEvent.java` — audit event record: tenancyId, receivedAt, eventType, correlationId, deviceId, message
+- `api/src/main/java/io/casehub/iot/api/bridge/BridgeAuditEventType.java` — enum: 8 audit event types (no HEARTBEAT)
+- `bridge-server/src/main/java/io/casehub/iot/bridge/server/audit/LoggingBridgeAuditObserver.java` — @ObservesAsync BridgeAuditEvent → structured JSON log
+- `bridge/src/main/docker/Dockerfile.jvm` — Temurin 21-jre-alpine, fast-jar, non-root
+- `bridge/docker-compose.yml` — single service, host network, event store volume, health check
+- `bridge/DEPLOYMENT.md` — deployment guide: prerequisites, config reference, troubleshooting
 
 #### Key wiring
 
@@ -1163,6 +1307,7 @@ Not closed here: Drools integration for hybrid local automations (deployment top
 - **Why CDI-discovered filter chain (not SmallRye Reactive Messaging):** SmallRye is for inter-service transport. CDI Instance<> discovery is the CaseHub-native pattern for extensible in-app processing.
 - **Why server-side namespacing (not agent-side):** Agent stays simple. Rewriting in one place. Wire format carries original IDs (debuggable). Jackson tree copy handles all types including supplements without toBuilder().
 - **Why snapshot-only reconnection (not event buffer):** Replaying buffered events risks ghost automations. Snapshot provides current truth. Same as crash recovery.
+- **Why CDI events for bridge audit, not SPI (C6):** The dual-trail audit pattern requires both operational logging AND compliance ledger active simultaneously. CDI selects one SPI implementation (highest priority), but CDI events support N independent `@ObservesAsync` observers. Each observer fires independently — adding compliance is classpath-only (new module with observer bean).
 
 #### Pattern introduced
 
@@ -1180,6 +1325,7 @@ Not closed here: Drools integration for hybrid local automations (deployment top
 - `context.registerSubtypes()` feeds Jackson's standard `TypeNameIdResolver`, not a custom resolver. Vendor modules must call `DeviceTypeIdResolver.registerType()` directly.
 - `toBuilder()` is deliberately absent on the 4 common types with supplement subclasses (ThermostatDevice, LightDevice, LockDevice, CoverDevice). Adding it creates a type-slicing trap. Jackson tree copy is the polymorphic copy mechanism.
 - `@JsonAutoDetect(fieldVisibility = ANY)` on DeviceEntity is required because accessor methods use non-JavaBean naming (`deviceId()` not `getDeviceId()`).
+- SmallRye Config validates ALL `@ConfigMapping` properties at startup regardless of bean lifecycle. A disabled provider (bean never instantiated via `@LookupIfProperty`) with required properties (`String url()`) crashes the app with `NoSuchElementException` before any CDI bean is created. Fix: all provider config properties must be `Optional<String>`, validated programmatically in lazy init when `enabled=true`.
 
 #### Pattern to replicate
 
@@ -1252,7 +1398,7 @@ Decisions that span multiple layers or are cross-cutting. Layer-specific decisio
 | WebSocket reliability (HA) | HA WebSocket drops silently; state changes lost during reconnection | Open | Exponential backoff reconnection; full state re-sync via REST discovery on reconnect |
 | State cache timing (OpenHAB) | 50ms coalescing window may be too short (split events) or too long (delayed reaction) | Open | Make window configurable; validate with real OpenHAB instance |
 | casehub-life Layer 9 timing | casehub-life needs iot-api before full provider work completes | Open | C1 (Core API) + C2 (Test Infrastructure) sufficient for casehub-life to begin Layer 9 |
-| Bridge security | WebSocket to cloud carries device state — interception risk | Open | TLS mandatory; bridge-auth-token per tenant; bridge does not store HA/OH credentials |
+| Bridge security | WebSocket to cloud carries device state — interception risk | Mitigated | TLS mandatory; bridge-auth-token per tenant; bridge does not store HA/OH credentials. Documented in DEPLOYMENT.md with token rotation guidance. |
 | Device ID stability | HA entity_id can change; OpenHAB item names can change | Accepted | HA: entity_id used verbatim; renames require refresh(); HA unique_id requires entity-registry API call and is not universally present. OH: Equipment Group name used. Documented in provider Javadoc. |
 
 ---
@@ -1282,6 +1428,10 @@ Decisions that span multiple layers or are cross-cutting. Layer-specific decisio
 | **IoTCloudEventAdapter** | `@ApplicationScoped` bean that observes `StateChangeEvent` and re-publishes as a CloudEvent with type `io.casehub.iot.state_change.{deviceClass}` — decouples consumers from iot-api types |
 | **CloudEvent** | CNCF standard envelope for event data (`io.cloudevents:cloudevents-api`) — used by `IoTCloudEventAdapter` to publish domain events in a vendor-neutral format |
 | **BridgeDeviceProvider** | Cloud-side `DeviceProvider` implementation in `iot-bridge-server` — remote devices appear local to cloud consumers via WebSocket tunnel |
+| **BridgeAuditEvent** | Java record fired as a CDI async event for all bridge protocol messages. Carries tenancyId, receivedAt, eventType, optional correlationId/deviceId/message. |
+| **BridgeAuditEventType** | Enum classifying audit events: STATE_CHANGE, REPLAYED_STATE_CHANGE, STATE_SNAPSHOT, PROVIDER_STATUS_CHANGE, COMMAND_SENT, COMMAND_RESPONSE, AGENT_CONNECTED, AGENT_DISCONNECTED. No HEARTBEAT. |
+| **@LookupIfProperty** | Quarkus CDI mechanism for conditional bean activation. Provider not discoverable via `Instance<>` when property is absent or not equal to `"true"`. |
+| **Dual-trail audit pattern** | Operational logging and compliance ledger as independent CDI event observers. Both fire for every BridgeAuditEvent. Neither blocks the other. |
 
 ---
 
@@ -1289,10 +1439,10 @@ Decisions that span multiple layers or are cross-cutting. Layer-specific decisio
 
 ### Completeness
 
-- **All 6 layers:** Scoped with planned key files, architectural decisions, accountability gaps, and pattern-to-replicate sections. Full entries will be completed at chapter close.
-- **All 5 chapters:** Scoped with layer impact matrices and accountability gaps. Delivery entries will be written at chapter close.
+- **All 6 layers:** Scoped with key files, architectural decisions, accountability gaps, and pattern-to-replicate sections. Full entries will be completed at chapter close.
+- **All 6 chapters:** Scoped with layer impact matrices and accountability gaps. Delivery entries will be written at chapter close.
 - **§1–§8:** Complete for current knowledge. §6 Runtime View covers 5 scenarios across all deployment modes.
-- **§10:** Three cross-cutting ADRs. Layer-specific decisions are inline in §9.4.
+- **§10:** Four cross-cutting ADRs. Layer-specific decisions are inline in §9.4.
 
 ### Pre-implementation State
 
