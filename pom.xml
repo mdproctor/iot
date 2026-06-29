@@ -31,6 +31,11 @@
                 <artifactId>casehub-iot-testing</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.casehub</groupId>
+                <artifactId>casehub-iot-bridge-persistence-memory</artifactId>
+                <version>${project.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -63,6 +68,7 @@
         <module>homeassistant</module>
         <module>openhab</module>
         <module>testing</module>
+        <module>bridge-persistence-memory</module>
         <module>bridge</module>
         <module>bridge-server</module>
     </modules>
