@@ -49,6 +49,7 @@ public class InMemoryBridgeAuditStore implements BridgeAuditStore {
         }
         return snapshot.stream()
             .filter(e -> matches(e, query))
+            .skip(query.offset())
             .limit(query.limit())
             .toList();
     }

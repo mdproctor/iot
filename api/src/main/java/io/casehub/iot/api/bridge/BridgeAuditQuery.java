@@ -11,11 +11,15 @@ public record BridgeAuditQuery(
     @Nullable BridgeAuditEventType eventType,
     @Nullable String deviceId,
     @Nullable String correlationId,
+    int offset,
     int limit
 ) {
     public static final int DEFAULT_LIMIT = 100;
 
     public BridgeAuditQuery {
+        if (offset < 0) {
+            throw new IllegalArgumentException("offset must be non-negative");
+        }
         if (limit <= 0) {
             throw new IllegalArgumentException("limit must be positive");
         }
@@ -32,6 +36,7 @@ public record BridgeAuditQuery(
         private BridgeAuditEventType eventType;
         private String deviceId;
         private String correlationId;
+        private int offset = 0;
         private int limit = DEFAULT_LIMIT;
 
         public Builder tenancyId(final String tenancyId) { this.tenancyId = tenancyId; return this; }
@@ -40,10 +45,11 @@ public record BridgeAuditQuery(
         public Builder eventType(final BridgeAuditEventType eventType) { this.eventType = eventType; return this; }
         public Builder deviceId(final String deviceId) { this.deviceId = deviceId; return this; }
         public Builder correlationId(final String correlationId) { this.correlationId = correlationId; return this; }
+        public Builder offset(final int offset) { this.offset = offset; return this; }
         public Builder limit(final int limit) { this.limit = limit; return this; }
 
         public BridgeAuditQuery build() {
-            return new BridgeAuditQuery(tenancyId, from, to, eventType, deviceId, correlationId, limit);
+            return new BridgeAuditQuery(tenancyId, from, to, eventType, deviceId, correlationId, offset, limit);
         }
     }
 }

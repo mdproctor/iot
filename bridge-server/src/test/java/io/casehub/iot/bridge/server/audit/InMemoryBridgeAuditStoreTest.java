@@ -207,6 +207,19 @@ class InMemoryBridgeAuditStoreTest {
         assertThat(all).isNotEmpty();
     }
 
+    @Test
+    void queryRespectsOffset() {
+        for (int i = 0; i < 10; i++) {
+            store.save(auditEvent("t", BridgeAuditEventType.STATE_CHANGE, "d" + i, null));
+        }
+
+        final var results = store.query(BridgeAuditQuery.builder().offset(3).limit(3).build());
+        assertThat(results).hasSize(3);
+        // newest-first: d9, d8, d7, d6, d5, d4, d3, d2, d1, d0
+        // offset 3 skips d9, d8, d7 → returns d6, d5, d4
+        assertThat(results.get(0).deviceId()).isEqualTo("d6");
+    }
+
     private static BridgeAuditEvent auditEvent(final String tenancyId, final BridgeAuditEventType type,
                                                 final String deviceId, final String correlationId) {
         return new BridgeAuditEvent(tenancyId, Instant.now(), type, correlationId, deviceId, null);

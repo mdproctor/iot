@@ -64,4 +64,17 @@ class BridgeAuditQueryTest {
     void defaultLimitConstantIs100() {
         assertThat(BridgeAuditQuery.DEFAULT_LIMIT).isEqualTo(100);
     }
+
+    @Test
+    void offsetMustBeNonNegative() {
+        assertThatThrownBy(() -> BridgeAuditQuery.builder().offset(-1).build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("offset");
+    }
+
+    @Test
+    void offsetDefaultsToZero() {
+        final var query = BridgeAuditQuery.builder().build();
+        assertThat(query.offset()).isZero();
+    }
 }
