@@ -25,7 +25,6 @@ Separate from `bridge-server/` because adding JPA there would force all consumer
 - `quarkus-jdbc-postgresql` — PostgreSQL driver (runtime)
 - `jackson-databind` — BridgeMessage JSON serialization (transitive from api)
 - `jandex-maven-plugin` — CDI bean discovery
-- `org.testcontainers:postgresql` — PostgreSQL Testcontainers (test)
 
 ### bridge-persistence-memory/
 
@@ -200,7 +199,7 @@ The JPA store grows without bound — unlike the in-memory ring buffer, there is
 
 Retention strategy (configurable TTL, scheduled cleanup, table partitioning) is deferred to a follow-up issue. Retention is deployment-specific — some operators want 90 days, some want 7 years for compliance. The store's first job is correctness and queryability. Retention is additive: a scheduled cleanup job or partitioning scheme can be layered on without schema changes.
 
-**Deferred:** casehubio/iot#TBD — BridgeAuditStore data retention strategy.
+**Deferred:** casehubio/iot#40 — BridgeAuditStore data retention strategy.
 
 ## Testing
 
@@ -222,13 +221,7 @@ Retention strategy (configurable TTL, scheduled cleanup, table partitioning) is 
 
 H2 in PostgreSQL mode accepts `JSONB` as a type. `@JdbcTypeCode(SqlTypes.JSON)` works with both H2 and PostgreSQL — Hibernate selects the appropriate dialect-specific type.
 
-**`JpaBridgeAuditStorePostgresTest`** — `@QuarkusTest` with PostgreSQL Testcontainers. Validates Flyway migration DDL against a real PostgreSQL instance. Follows the `quarkus-work-reports` reference pattern: `PostgresTestResource implements QuarkusTestResourceLifecycleManager` starts `postgres:16-alpine`, dedicated Surefire execution sets `quarkus.datasource.db-kind=postgresql` as system property before Quarkus augmentation. PostgreSQL execution runs before H2 in Surefire order.
-
-Covers:
-- Migration runs cleanly on real PostgreSQL
-- JSONB column stores and retrieves BridgeMessage with correct polymorphic type
-- `received_at DESC` index creation succeeds
-- Basic save/query round-trip on PostgreSQL dialect
+**`JpaBridgeAuditStorePostgresTest`** — **DEFERRED.** H2 `MODE=PostgreSQL` provides adequate coverage for the initial implementation. A future issue will introduce PostgreSQL Testcontainers testing with `PostgresTestResource implements QuarkusTestResourceLifecycleManager` to validate real-world PostgreSQL dialect behavior (JSONB polymorphism, migration DDL, index creation).
 
 **`InMemoryBridgeAuditStoreTest`** — existing test moved to `bridge-persistence-memory/`. Updated to cover `offset` pagination.
 
