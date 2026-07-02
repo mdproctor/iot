@@ -14,11 +14,6 @@
     <description>Reusable IoT ganglia, case descriptors, worker functions, and REST interfaces</description>
 
     <dependencies>
-        <dependency>
-            <groupId>io.casehub</groupId>
-            <artifactId>casehub-blocks</artifactId>
-        </dependency>
-
         <!-- IoT domain types -->
         <dependency>
             <groupId>io.casehub</groupId>
