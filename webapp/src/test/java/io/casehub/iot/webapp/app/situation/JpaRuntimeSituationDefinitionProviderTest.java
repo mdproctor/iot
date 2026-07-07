@@ -3,10 +3,13 @@ package io.casehub.iot.webapp.app.situation;
 import io.casehub.iot.webapp.app.persistence.IoTSituationDefinitionEntity;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.casehub.ras.api.CaseTriggerConfig;
+import io.casehub.ras.api.TriggerAction;
 import io.casehub.ras.api.ChainMode;
 import io.casehub.ras.api.SituationDefinition;
 import io.casehub.ras.api.TriggerMode;
 import io.casehub.ras.api.SituationRegistration;
+import io.casehub.iot.webapp.app.WebappPostgresTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -24,6 +27,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
+@QuarkusTestResource(WebappPostgresTestResource.class)
 class JpaRuntimeSituationDefinitionProviderTest {
 
     @Inject
@@ -63,12 +67,12 @@ class JpaRuntimeSituationDefinitionProviderTest {
             Duration.ofMinutes(5),
             null,
             new ChainMode.Or(new LinkedHashSet<>(List.of("lock-state"))),
-            new CaseTriggerConfig(
+            new TriggerAction.CreateCase(new CaseTriggerConfig(
                 "io.casehub.iot",
                 "security-alert",
                 "1.0",
                 Map.of()
-            ),
+            )),
             new TriggerMode.FireOnce()
         );
 
@@ -120,12 +124,12 @@ class JpaRuntimeSituationDefinitionProviderTest {
             Duration.ofMinutes(10), // Different from potential classpath default
             null,
             new ChainMode.Or(new LinkedHashSet<>(List.of("lock-state"))),
-            new CaseTriggerConfig(
+            new TriggerAction.CreateCase(new CaseTriggerConfig(
                 "io.casehub.iot",
                 "security-alert",
                 "1.0",
                 Map.of("severity", "high") // Override adds custom data
-            ),
+            )),
             new TriggerMode.Repeating(Duration.ofMinutes(15))
         );
 
@@ -135,12 +139,12 @@ class JpaRuntimeSituationDefinitionProviderTest {
             Duration.ofMinutes(5),
             null,
             new ChainMode.Or(new LinkedHashSet<>(List.of("temperature-threshold"))),
-            new CaseTriggerConfig(
+            new TriggerAction.CreateCase(new CaseTriggerConfig(
                 "io.casehub.iot",
                 "generic-response",
                 "1.0",
                 Map.of()
-            ),
+            )),
             new TriggerMode.FireOnce()
         );
 
@@ -207,7 +211,7 @@ class JpaRuntimeSituationDefinitionProviderTest {
             Duration.ofMinutes(5),
             null,
             new ChainMode.Or(new LinkedHashSet<>(List.of("lock-state"))),
-            new CaseTriggerConfig("io.casehub.iot", "security-alert", "1.0", Map.of()),
+            new TriggerAction.CreateCase(new CaseTriggerConfig("io.casehub.iot", "security-alert", "1.0", Map.of())),
             new TriggerMode.FireOnce()
         );
 

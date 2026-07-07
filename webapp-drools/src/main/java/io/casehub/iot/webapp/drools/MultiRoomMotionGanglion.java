@@ -13,6 +13,8 @@ public class MultiRoomMotionGanglion extends DroolsGanglion {
     private static final String DEFAULT_WINDOW_MINUTES = "2";
     private static final String DEFAULT_REQUIRED_DEVICES = "3";
 
+    MultiRoomMotionGanglion() {}
+
     @Inject
     public MultiRoomMotionGanglion(DroolsSessionStore sessionStore) {
         this(sessionStore,

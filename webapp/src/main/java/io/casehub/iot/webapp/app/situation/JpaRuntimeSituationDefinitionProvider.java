@@ -216,7 +216,7 @@ public class JpaRuntimeSituationDefinitionProvider implements SituationDefinitio
                 correlationWindow,
                 eventBufferDelay,
                 chainMode,
-                triggerConfig,
+                new io.casehub.ras.api.TriggerAction.CreateCase(triggerConfig),
                 triggerMode
             );
             return new SituationRegistration(def);

@@ -4,6 +4,7 @@ import io.casehub.iot.webapp.app.persistence.IoTSituationDefinitionEntity;
 import io.casehub.iot.webapp.rest.SituationDefinitionRequest;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.casehub.ras.api.CaseTriggerConfig;
+import io.casehub.ras.api.TriggerAction;
 import io.casehub.ras.api.ChainMode;
 import io.casehub.ras.api.SituationDefinition;
 import io.casehub.ras.api.TriggerMode;
@@ -265,7 +266,7 @@ public class SituationResource {
                 request.correlationWindow(),
                 request.eventBufferDelay(),
                 chainMode,
-                triggerConfig,
+                new TriggerAction.CreateCase(triggerConfig),
                 triggerMode
         );
     }

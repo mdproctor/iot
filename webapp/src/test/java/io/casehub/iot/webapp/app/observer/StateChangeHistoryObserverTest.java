@@ -5,7 +5,9 @@ import io.casehub.iot.api.DeviceClass;
 import io.casehub.iot.api.LightDevice;
 import io.casehub.iot.api.StateChangeEvent;
 import io.casehub.iot.webapp.app.persistence.IoTDeviceStateHistoryEntity;
+import io.casehub.iot.webapp.app.WebappPostgresTestResource;
 import io.casehub.platform.api.identity.CurrentPrincipal;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -18,6 +20,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
+@QuarkusTestResource(WebappPostgresTestResource.class)
 class StateChangeHistoryObserverTest {
 
     @Inject
@@ -41,6 +44,7 @@ class StateChangeHistoryObserverTest {
                 .deviceClass(DeviceClass.LIGHT)
                 .providerId("test-provider")
                 .tenancyId("test-tenant")
+                .lastUpdated(Instant.now())
                 .build();
     }
 
@@ -90,12 +94,12 @@ class StateChangeHistoryObserverTest {
                 .deviceId("light-2").label("Kitchen Light").available(true)
                 .on(true).brightness(50)
                 .deviceClass(DeviceClass.LIGHT).providerId("test-provider").tenancyId("test-tenant")
-                .build();
+                .lastUpdated(Instant.now()).build();
         final LightDevice after = new LightDevice.Builder()
                 .deviceId("light-2").label("Kitchen Light").available(true)
                 .on(false).brightness(0)
                 .deviceClass(DeviceClass.LIGHT).providerId("test-provider").tenancyId("test-tenant")
-                .build();
+                .lastUpdated(Instant.now()).build();
 
         final StateChangeEvent event = new StateChangeEvent(
             before,

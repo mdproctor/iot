@@ -15,6 +15,8 @@ public class SustainedTemperatureRiseGanglion extends DroolsGanglion {
     private static final String DEFAULT_REQUIRED_COUNT = "5";
     private static final String DEFAULT_DELTA_CELSIUS = "3.0";
 
+    SustainedTemperatureRiseGanglion() {}
+
     @Inject
     public SustainedTemperatureRiseGanglion(DroolsSessionStore sessionStore) {
         this(sessionStore,
