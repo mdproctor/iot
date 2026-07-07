@@ -227,9 +227,12 @@ public class JpaRuntimeSituationDefinitionProvider implements SituationDefinitio
                 Map<String, Object> map, String situationId) {
             final String type = requireString(map, "type");
             return switch (type) {
-                case "and" -> new io.casehub.ras.api.ChainMode.And(
-                    new java.util.LinkedHashSet<>(requireList(map, "ganglia", situationId))
-                );
+                case "and" -> {
+                    List<String> g = map.containsKey("requiredGanglia")
+                            ? requireList(map, "requiredGanglia", situationId)
+                            : requireList(map, "ganglia", situationId);
+                    yield new io.casehub.ras.api.ChainMode.And(new java.util.LinkedHashSet<>(g));
+                }
                 case "or" -> new io.casehub.ras.api.ChainMode.Or(
                     new java.util.LinkedHashSet<>(requireList(map, "ganglia", situationId))
                 );
@@ -265,7 +268,7 @@ public class JpaRuntimeSituationDefinitionProvider implements SituationDefinitio
         private static io.casehub.ras.api.TriggerMode parseTriggerMode(Map<String, Object> map) {
             final String type = (String) map.getOrDefault("type", "fire-once");
             return switch (type) {
-                case "fire-once" -> new io.casehub.ras.api.TriggerMode.FireOnce();
+                case "fire-once", "fireOnce" -> new io.casehub.ras.api.TriggerMode.FireOnce();
                 case "repeating" -> {
                     final Object cooldownValue = map.get("cooldown");
                     if (cooldownValue == null) {
@@ -278,7 +281,7 @@ public class JpaRuntimeSituationDefinitionProvider implements SituationDefinitio
                     yield new io.casehub.ras.api.TriggerMode.Repeating(cooldown);
                 }
                 default -> throw new IllegalArgumentException(
-                    "Unknown triggerMode type: '" + type + "'. Expected 'fire-once' or 'repeating'"
+                    "Unknown triggerMode type: '" + type + "'. Expected 'fire-once', 'fireOnce', or 'repeating'"
                 );
             };
         }

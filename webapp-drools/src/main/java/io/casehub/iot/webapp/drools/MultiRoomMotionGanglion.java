@@ -1,19 +1,17 @@
 package io.casehub.iot.webapp.drools;
 
 import io.casehub.ras.drools.*;
-import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.Dependent;
 import jakarta.inject.Inject;
 
 import java.util.List;
 import java.util.Set;
 
-@ApplicationScoped
+@Dependent
 public class MultiRoomMotionGanglion extends DroolsGanglion {
 
     private static final String DEFAULT_WINDOW_MINUTES = "2";
     private static final String DEFAULT_REQUIRED_DEVICES = "3";
-
-    MultiRoomMotionGanglion() {}
 
     @Inject
     public MultiRoomMotionGanglion(DroolsSessionStore sessionStore) {

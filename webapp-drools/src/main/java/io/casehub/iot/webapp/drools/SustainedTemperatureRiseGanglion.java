@@ -1,21 +1,19 @@
 package io.casehub.iot.webapp.drools;
 
 import io.casehub.ras.drools.*;
-import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.Dependent;
 import jakarta.inject.Inject;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 
-@ApplicationScoped
+@Dependent
 public class SustainedTemperatureRiseGanglion extends DroolsGanglion {
 
     private static final String DEFAULT_WINDOW_MINUTES = "30";
     private static final String DEFAULT_REQUIRED_COUNT = "5";
     private static final String DEFAULT_DELTA_CELSIUS = "3.0";
-
-    SustainedTemperatureRiseGanglion() {}
 
     @Inject
     public SustainedTemperatureRiseGanglion(DroolsSessionStore sessionStore) {
