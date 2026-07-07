@@ -1,7 +1,7 @@
 package io.casehub.iot.webapp.app.engine;
 
 import io.casehub.api.engine.YamlCaseHub;
-import io.casehub.api.engine.definition.CaseDefinition;
+import io.casehub.api.model.CaseDefinition;
 import io.casehub.iot.api.spi.DeviceProvider;
 import io.casehub.iot.api.spi.DeviceRegistry;
 import io.casehub.iot.webapp.engine.SafetyAlertCaseDescriptor;
@@ -35,6 +35,6 @@ public class SafetyAlertCaseHub extends YamlCaseHub {
     @Override
     protected void augment(final CaseDefinition definition) {
         final var descriptor = new SafetyAlertCaseDescriptor(providers, registry);
-        descriptor.workers().forEach(definition::registerWorker);
+        descriptor.workers().forEach(definition.getWorkers()::add);
     }
 }

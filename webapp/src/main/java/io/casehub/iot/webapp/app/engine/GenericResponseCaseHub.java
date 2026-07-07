@@ -1,7 +1,7 @@
 package io.casehub.iot.webapp.app.engine;
 
 import io.casehub.api.engine.YamlCaseHub;
-import io.casehub.api.engine.definition.CaseDefinition;
+import io.casehub.api.model.CaseDefinition;
 import io.casehub.iot.webapp.engine.GenericResponseCaseDescriptor;
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -25,6 +25,6 @@ public class GenericResponseCaseHub extends YamlCaseHub {
     @Override
     protected void augment(final CaseDefinition definition) {
         final var descriptor = new GenericResponseCaseDescriptor();
-        descriptor.workers().forEach(definition::registerWorker);
+        descriptor.workers().forEach(definition.getWorkers()::add);
     }
 }

@@ -35,7 +35,7 @@ public class StateChangeHistoryObserver {
         try {
             final var entity = new IoTDeviceStateHistoryEntity(
                 currentPrincipal.tenancyId(),
-                event.after().getDeviceId(),
+                event.after().deviceId(),
                 event.providerId(),
                 event.after().deviceClass().name(),
                 event.after(),
@@ -47,12 +47,12 @@ public class StateChangeHistoryObserver {
 
             LOG.fine(() -> String.format(
                 "Persisted state change for device %s: %d capabilities changed",
-                event.after().getDeviceId(),
+                event.after().deviceId(),
                 event.changedCapabilities().size()
             ));
         } catch (Exception e) {
             LOG.severe("Failed to persist state change for device "
-                + event.after().getDeviceId() + ": " + e.getMessage());
+                + event.after().deviceId() + ": " + e.getMessage());
             throw e;
         }
     }

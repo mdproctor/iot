@@ -1,10 +1,10 @@
 package io.casehub.iot.webapp.app.rest;
 
-import io.casehub.iot.api.DeviceRegistry;
-import io.casehub.iot.api.provider.DeviceProvider;
+import io.casehub.iot.api.spi.DeviceRegistry;
+import io.casehub.iot.api.spi.DeviceProvider;
 import io.casehub.iot.bridge.server.BridgeConnectionRegistry;
 import io.casehub.iot.webapp.rest.HealthOverviewResponse;
-import io.casehub.platform.api.CurrentPrincipal;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
@@ -62,7 +62,7 @@ public class HealthResource {
         // Provider statuses
         var providerStatuses = providers.stream()
                 .map(p -> {
-                    var status = p.status().await().indefinitely();
+                    var status = p.status();
                     var deviceCount = (int) deviceRegistry.findAll().stream()
                             .filter(d -> d.providerId().equals(p.providerId()))
                             .filter(d -> filterByTenancy(d.tenancyId()))

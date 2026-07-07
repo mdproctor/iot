@@ -2,7 +2,7 @@ package io.casehub.iot.webapp.app.rest;
 
 import io.casehub.iot.webapp.app.persistence.IoTSituationDefinitionEntity;
 import io.casehub.iot.webapp.rest.SituationDefinitionRequest;
-import io.casehub.platform.api.CurrentPrincipal;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.casehub.ras.api.CaseTriggerConfig;
 import io.casehub.ras.api.ChainMode;
 import io.casehub.ras.api.SituationDefinition;

@@ -6,7 +6,7 @@ import io.casehub.ras.api.CaseTriggerConfig;
 import io.casehub.ras.api.ChainMode;
 import io.casehub.ras.api.SituationDefinition;
 import io.casehub.ras.api.TriggerMode;
-import io.casehub.ras.runtime.SituationRegistration;
+import io.casehub.ras.api.SituationRegistration;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;

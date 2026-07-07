@@ -2,10 +2,10 @@ package io.casehub.iot.webapp.app.rest;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.casehub.iot.api.DeviceRegistry;
-import io.casehub.iot.api.event.StateChangeEvent;
+import io.casehub.iot.api.spi.DeviceRegistry;
+import io.casehub.iot.api.StateChangeEvent;
 import io.casehub.iot.webapp.rest.DeviceResponse;
-import io.casehub.platform.api.CurrentPrincipal;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
 import jakarta.annotation.PostConstruct;
@@ -83,8 +83,8 @@ public class DeviceSseResource {
                                 d.providerId(),
                                 d.tenancyId(),
                                 d.deviceClass().name(),
-                                d.name(),
-                                d.location(),
+                                d.label(),
+                                null,
                                 d.available(),
                                 d.capabilities(),
                                 d.lastUpdated()
@@ -113,21 +113,21 @@ public class DeviceSseResource {
      */
     void onStateChange(@ObservesAsync StateChangeEvent event) {
         // Filter by tenancy
-        if (!filterByTenancy(event.device().tenancyId())) {
+        if (!filterByTenancy(event.after().tenancyId())) {
             return;
         }
 
         try {
             var deviceResponse = new DeviceResponse(
-                    event.device().deviceId(),
-                    event.device().providerId(),
-                    event.device().tenancyId(),
-                    event.device().deviceClass().name(),
-                    event.device().name(),
-                    event.device().location(),
-                    event.device().available(),
-                    event.device().capabilities(),
-                    event.device().lastUpdated()
+                    event.after().deviceId(),
+                    event.after().providerId(),
+                    event.after().tenancyId(),
+                    event.after().deviceClass().name(),
+                    event.after().label(),
+                    null,
+                    event.after().available(),
+                    event.after().capabilities(),
+                    event.after().lastUpdated()
             );
 
             // Broadcast replace operation

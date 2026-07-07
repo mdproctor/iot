@@ -2,7 +2,7 @@ package io.casehub.iot.webapp.app.observer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.casehub.iot.api.DeviceClass;
-import io.casehub.iot.api.Light;
+import io.casehub.iot.api.LightDevice;
 import io.casehub.iot.api.StateChangeEvent;
 import io.casehub.iot.webapp.app.persistence.IoTDeviceStateHistoryEntity;
 import io.casehub.platform.api.identity.CurrentPrincipal;
@@ -32,27 +32,36 @@ class StateChangeHistoryObserverTest {
     @Inject
     ObjectMapper objectMapper;
 
+    private LightDevice light(String deviceId, String label, boolean available, boolean on) {
+        return new LightDevice.Builder()
+                .deviceId(deviceId)
+                .label(label)
+                .available(available)
+                .on(on)
+                .deviceClass(DeviceClass.LIGHT)
+                .providerId("test-provider")
+                .tenancyId("test-tenant")
+                .build();
+    }
+
     @Test
     @Transactional
     void shouldPersistStateChangeEvent() {
-        // Given
-        final Light before = new Light("light-1", "Living Room Light", true, true);
-        final Light after = before.withOnOff(false);
+        final LightDevice before = light("light-1", "Living Room Light", true, true);
+        final LightDevice after = light("light-1", "Living Room Light", true, false);
 
         final StateChangeEvent event = new StateChangeEvent(
             before,
             after,
-            Set.of("onOff"),
+            Set.of("isOn"),
             Instant.now(),
             "test-provider"
         );
 
-        // When
         observer.onStateChange(event);
         entityManager.flush();
         entityManager.clear();
 
-        // Then
         final IoTDeviceStateHistoryEntity persisted = entityManager
             .createQuery(
                 "SELECT h FROM IoTDeviceStateHistoryEntity h WHERE h.deviceId = :deviceId",
@@ -66,38 +75,39 @@ class StateChangeHistoryObserverTest {
         assertThat(persisted.getDeviceId()).isEqualTo("light-1");
         assertThat(persisted.getProviderId()).isEqualTo("test-provider");
         assertThat(persisted.getDeviceClass()).isEqualTo(DeviceClass.LIGHT.name());
-        assertThat(persisted.getChangedCapabilities()).containsExactly("onOff");
+        assertThat(persisted.getChangedCapabilities()).containsExactly("isOn");
         assertThat(persisted.getOccurredAt()).isEqualTo(event.occurredAt());
 
-        // Verify state snapshot deserialization
-        final Light snapshot = (Light) persisted.getStateSnapshot();
-        assertThat(snapshot.getDeviceId()).isEqualTo("light-1");
-        assertThat(snapshot.isOnOff()).isFalse();
+        final LightDevice snapshot = (LightDevice) persisted.getStateSnapshot();
+        assertThat(snapshot.deviceId()).isEqualTo("light-1");
+        assertThat(snapshot.isOn()).isFalse();
     }
 
     @Test
     @Transactional
     void shouldHandleMultipleCapabilityChanges() {
-        // Given
-        final Light before = new Light("light-2", "Kitchen Light", true, true)
-            .withBrightness(50);
-        final Light after = before
-            .withOnOff(false)
-            .withBrightness(0);
+        final LightDevice before = new LightDevice.Builder()
+                .deviceId("light-2").label("Kitchen Light").available(true)
+                .on(true).brightness(50)
+                .deviceClass(DeviceClass.LIGHT).providerId("test-provider").tenancyId("test-tenant")
+                .build();
+        final LightDevice after = new LightDevice.Builder()
+                .deviceId("light-2").label("Kitchen Light").available(true)
+                .on(false).brightness(0)
+                .deviceClass(DeviceClass.LIGHT).providerId("test-provider").tenancyId("test-tenant")
+                .build();
 
         final StateChangeEvent event = new StateChangeEvent(
             before,
             after,
-            Set.of("onOff", "brightness"),
+            Set.of("isOn", "brightness"),
             Instant.now(),
             "test-provider"
         );
 
-        // When
         observer.onStateChange(event);
         entityManager.flush();
 
-        // Then
         final IoTDeviceStateHistoryEntity persisted = entityManager
             .createQuery(
                 "SELECT h FROM IoTDeviceStateHistoryEntity h WHERE h.deviceId = :deviceId",
@@ -107,14 +117,13 @@ class StateChangeHistoryObserverTest {
             .getSingleResult();
 
         assertThat(persisted.getChangedCapabilities())
-            .containsExactlyInAnyOrder("onOff", "brightness");
+            .containsExactlyInAnyOrder("isOn", "brightness");
     }
 
     @Test
     @Transactional
     void shouldHandleNewDeviceWithNoBefore() {
-        // Given - new device has no "before" state
-        final Light after = new Light("light-3", "New Light", true, true);
+        final LightDevice after = light("light-3", "New Light", true, true);
 
         final StateChangeEvent event = new StateChangeEvent(
             null,
@@ -124,11 +133,9 @@ class StateChangeHistoryObserverTest {
             "test-provider"
         );
 
-        // When
         observer.onStateChange(event);
         entityManager.flush();
 
-        // Then
         final IoTDeviceStateHistoryEntity persisted = entityManager
             .createQuery(
                 "SELECT h FROM IoTDeviceStateHistoryEntity h WHERE h.deviceId = :deviceId",

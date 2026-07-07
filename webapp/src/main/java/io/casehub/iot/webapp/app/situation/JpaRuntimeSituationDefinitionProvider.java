@@ -2,8 +2,8 @@ package io.casehub.iot.webapp.app.situation;
 
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import io.casehub.ras.api.Ganglion;
-import io.casehub.ras.runtime.SituationDefinitionProvider;
-import io.casehub.ras.runtime.SituationRegistration;
+import io.casehub.ras.api.SituationDefinitionProvider;
+import io.casehub.ras.api.SituationRegistration;
 import io.casehub.iot.webapp.app.persistence.IoTSituationDefinitionEntity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;

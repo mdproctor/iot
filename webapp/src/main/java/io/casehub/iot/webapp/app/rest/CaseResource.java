@@ -1,6 +1,6 @@
 package io.casehub.iot.webapp.app.rest;
 
-import io.casehub.platform.api.CurrentPrincipal;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

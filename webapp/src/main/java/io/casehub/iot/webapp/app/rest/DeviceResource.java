@@ -1,13 +1,13 @@
 package io.casehub.iot.webapp.app.rest;
 
-import io.casehub.iot.api.DeviceRegistry;
-import io.casehub.iot.api.command.DeviceCommand;
-import io.casehub.iot.api.provider.DeviceProvider;
+import io.casehub.iot.api.spi.DeviceRegistry;
+import io.casehub.iot.api.DeviceCommand;
+import io.casehub.iot.api.spi.DeviceProvider;
 import io.casehub.iot.webapp.app.persistence.IoTDeviceStateHistoryEntity;
 import io.casehub.iot.webapp.rest.CommandRequest;
 import io.casehub.iot.webapp.rest.CommandResponse;
 import io.casehub.iot.webapp.rest.DeviceResponse;
-import io.casehub.platform.api.CurrentPrincipal;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
@@ -18,6 +18,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -77,8 +78,8 @@ public class DeviceResource {
                         d.providerId(),
                         d.tenancyId(),
                         d.deviceClass().name(),
-                        d.name(),
-                        d.location(),
+                        d.label(),
+                        null,
                         d.available(),
                         d.capabilities(),
                         d.lastUpdated()
@@ -109,8 +110,8 @@ public class DeviceResource {
                 device.providerId(),
                 device.tenancyId(),
                 device.deviceClass().name(),
-                device.name(),
-                device.location(),
+                device.label(),
+                null,
                 device.available(),
                 device.capabilities(),
                 device.lastUpdated()
@@ -142,7 +143,7 @@ public class DeviceResource {
         String correlationId = UUID.randomUUID().toString();
 
         // Build command
-        var command = DeviceCommand.of(
+        var command = new DeviceCommand(
                 deviceId,
                 request.action(),
                 request.parameters(),
@@ -214,7 +215,7 @@ public class DeviceResource {
                         h.getDeviceId(),
                         h.getDeviceClass(),
                         h.getStateSnapshot(),
-                        h.getChangedCapabilities(),
+                        Arrays.asList(h.getChangedCapabilities()),
                         h.getOccurredAt()
                 ))
                 .toList();

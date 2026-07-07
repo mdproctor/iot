@@ -1,9 +1,10 @@
 package io.casehub.iot.webapp.app.rest;
 
+import io.casehub.iot.api.bridge.BridgeAuditEventType;
 import io.casehub.iot.api.bridge.BridgeAuditQuery;
 import io.casehub.iot.api.bridge.BridgeAuditStore;
 import io.casehub.iot.bridge.server.BridgeConnectionRegistry;
-import io.casehub.platform.api.CurrentPrincipal;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -94,7 +95,7 @@ public class BridgeResource {
                 .tenancyId(effectiveTenancyId);
 
         if (eventType != null) {
-            queryBuilder.eventType(eventType);
+            queryBuilder.eventType(BridgeAuditEventType.valueOf(eventType.toUpperCase()));
         }
         if (deviceId != null) {
             queryBuilder.deviceId(deviceId);
@@ -111,21 +112,21 @@ public class BridgeResource {
 
         queryBuilder.offset(offset).limit(Math.min(limit, 500));
 
-        var result = auditStore.query(queryBuilder.build()).await().indefinitely();
+        var events = auditStore.query(queryBuilder.build());
 
         return new AuditTrailResponse(
-                result.records().stream()
+                events.stream()
                         .map(r -> new AuditRecord(
-                                r.id(),
+                                null,
                                 r.tenancyId(),
-                                r.eventType(),
+                                r.eventType().name(),
                                 r.deviceId(),
                                 r.correlationId(),
                                 r.message(),
-                                r.occurredAt()
+                                r.receivedAt()
                         ))
                         .toList(),
-                result.total(),
+                events.size(),
                 offset,
                 limit
         );

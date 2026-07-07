@@ -1,8 +1,8 @@
 package io.casehub.iot.webapp.app.rest;
 
-import io.casehub.iot.api.DeviceRegistry;
-import io.casehub.iot.api.provider.DeviceProvider;
-import io.casehub.platform.api.CurrentPrincipal;
+import io.casehub.iot.api.spi.DeviceRegistry;
+import io.casehub.iot.api.spi.DeviceProvider;
+import io.casehub.platform.api.identity.CurrentPrincipal;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
@@ -47,7 +47,7 @@ public class ProviderResource {
     public List<ProviderStatusResponse> list() {
         return providers.stream()
                 .map(p -> {
-                    var status = p.status().await().indefinitely();
+                    var status = p.status();
                     var deviceCount = deviceRegistry.findAll().stream()
                             .filter(d -> d.providerId().equals(p.providerId()))
                             .filter(d -> filterByTenancy(d.tenancyId()))
@@ -77,7 +77,7 @@ public class ProviderResource {
                 .findFirst()
                 .orElseThrow(() -> new NotFoundException("Provider not found: " + providerId));
 
-        var status = provider.status().await().indefinitely();
+        var status = provider.status();
         var deviceCount = deviceRegistry.findAll().stream()
                 .filter(d -> d.providerId().equals(provider.providerId()))
                 .filter(d -> filterByTenancy(d.tenancyId()))

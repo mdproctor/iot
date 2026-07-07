@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.casehub.ras.api.DetectionResult;
 import io.casehub.ras.api.DetectionSignal;
 import io.casehub.ras.api.SituationContext;
-import io.casehub.ras.drools.InMemoryDroolsSessionStore;
+import io.casehub.ras.drools.DroolsSessionKey;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.builder.CloudEventBuilder;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,12 +22,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SustainedTemperatureRiseGanglionTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private InMemoryDroolsSessionStore sessionStore;
+    private TestDroolsSessionStore sessionStore;
     private SustainedTemperatureRiseGanglion ganglion;
 
     @BeforeEach
     void setUp() {
-        sessionStore = new InMemoryDroolsSessionStore();
+        sessionStore = new TestDroolsSessionStore();
         // Short window and count for testing: 5 readings over 5 minutes, 2.0C delta
         ganglion = new SustainedTemperatureRiseGanglion(
                 sessionStore, 5L, 5, new BigDecimal("2.0"));

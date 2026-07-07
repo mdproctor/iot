@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.casehub.ras.api.DetectionResult;
 import io.casehub.ras.api.DetectionSignal;
 import io.casehub.ras.api.SituationContext;
-import io.casehub.ras.drools.InMemoryDroolsSessionStore;
+import io.casehub.ras.drools.DroolsSessionKey;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.builder.CloudEventBuilder;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,12 +21,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MultiRoomMotionGanglionTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private InMemoryDroolsSessionStore sessionStore;
+    private TestDroolsSessionStore sessionStore;
     private MultiRoomMotionGanglion ganglion;
 
     @BeforeEach
     void setUp() {
-        sessionStore = new InMemoryDroolsSessionStore();
+        sessionStore = new TestDroolsSessionStore();
         // Short window for testing: 2 minutes, 3 distinct devices
         ganglion = new MultiRoomMotionGanglion(sessionStore, 2L, 3);
     }
