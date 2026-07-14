@@ -18,6 +18,7 @@ dataset("situation-defs", "/api/situations/definitions");
 dataset("cases", "/api/cases");
 dataset("case-events", "/api/cases/{caseId}/events");
 dataset("case-workers", "/api/cases/{caseId}/workers");
+dataset("case-suggestions", "/api/cases/{caseId}/suggestions");
 dataset("workitems", "/api/workitems");
 dataset("health", "/api/health/overview");
 dataset("audit", "/api/bridge/audit");

@@ -32,6 +32,14 @@ export function casesPage() {
             lookup: lookup("case-workers"),
           })),
 
+          panel("Resolution Suggestions", table({
+            title: "Similar Past Resolutions",
+            sortable: true,
+            pageSize: 5,
+            lookup: lookup("case-suggestions"),
+            emptyMessage: "No similar past resolutions found.",
+          })),
+
           panel("Actions", html(`
             <div style="display: flex; gap: 8px; padding: 16px;">
               <button onclick="approveAction()">Approve</button>

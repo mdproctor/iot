@@ -1,11 +1,22 @@
 package io.casehub.iot.webapp.app.rest;
 
+import io.casehub.api.context.CaseContext;
+import io.casehub.api.model.CaseDefinition;
+import io.casehub.api.model.cbr.CbrConfig;
+import io.casehub.api.model.cbr.FeatureExtractor;
+import io.casehub.api.model.cbr.LambdaFeatureExtractor;
+import io.casehub.engine.common.internal.model.CaseInstance;
+import io.casehub.engine.common.spi.CaseDefinitionRegistry;
+import io.casehub.engine.common.spi.cache.CaseInstanceCache;
+import io.casehub.iot.webapp.cbr.IoTCbrRetrievalService;
+import io.casehub.iot.webapp.cbr.ResolutionSuggestion;
 import io.casehub.platform.api.identity.CurrentPrincipal;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -15,6 +26,8 @@ import jakarta.ws.rs.core.MediaType;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -40,6 +53,13 @@ public class CaseResource {
 
     @Inject
     CurrentPrincipal principal;
+    @Inject
+    CaseInstanceCache caseInstanceCache;
+    @Inject
+    CaseDefinitionRegistry caseDefinitionRegistry;
+    @Inject
+    IoTCbrRetrievalService retrievalService;
+
 
     /**
      * List open cases with optional filters.
@@ -77,6 +97,98 @@ public class CaseResource {
         // Check tenancy via principal.tenancyId()
         throw new NotFoundException("Case not found: " + caseId);
     }
+
+    @GET
+    @Path("/{caseId}/suggestions")
+    @RolesAllowed("iot-viewer")
+    public SuggestionResponse getSuggestions(@PathParam("caseId") UUID caseId) {
+        CaseInstance instance = caseInstanceCache.get(caseId);
+        if (instance == null) {
+            throw new NotFoundException("Case not found: " + caseId);
+        }
+
+        String caseType = instance.getCaseMetaModel().getName();
+
+        Optional<CaseDefinition> defOpt = caseDefinitionRegistry.findByName(caseType);
+        if (defOpt.isEmpty()) {
+            return new SuggestionResponse(caseId, caseType, 0, List.of());
+        }
+
+        CbrConfig cbrConfig = defOpt.get().getCbrConfig();
+        if (cbrConfig == null) {
+            return new SuggestionResponse(caseId, caseType, 0, List.of());
+        }
+
+        Map<String, Object> features = extractFeatures(cbrConfig, instance.getCaseContext());
+        List<ResolutionSuggestion> suggestions = retrievalService.retrieve(
+                cbrConfig, features, principal.tenancyId());
+
+        return new SuggestionResponse(caseId, caseType, suggestions.size(), suggestions);
+    }
+
+    @POST
+    @Path("/{caseId}/suggestions/{pastCaseId}/accept")
+    @RolesAllowed("iot-operator")
+    public void acceptSuggestion(
+            @PathParam("caseId") UUID caseId,
+            @PathParam("pastCaseId") String pastCaseId) {
+
+        CaseInstance instance = caseInstanceCache.get(caseId);
+        if (instance == null) {
+            throw new NotFoundException("Case not found: " + caseId);
+        }
+
+        var context = instance.getCaseContext();
+        @SuppressWarnings("unchecked")
+        var accepted = (java.util.Set<String>) context.getOrDefault(
+                "acceptedSuggestions", new java.util.HashSet<String>());
+
+        if (accepted.contains(pastCaseId)) {
+            return;
+        }
+
+        String caseType = instance.getCaseMetaModel().getName();
+        var    defOpt   = caseDefinitionRegistry.findByName(caseType);
+        if (defOpt.isEmpty()) {
+            throw new NotFoundException("Case definition not found: " + caseType);
+        }
+
+        CbrConfig cbrConfig = defOpt.get().getCbrConfig();
+        if (cbrConfig == null) {
+            throw new NotFoundException("No CBR config for case type: " + caseType);
+        }
+
+        var features    = extractFeatures(cbrConfig, context);
+        var suggestions = retrievalService.retrieve(cbrConfig, features, principal.tenancyId());
+        var match = suggestions.stream()
+                               .filter(s -> pastCaseId.equals(s.caseId()))
+                               .findFirst()
+                               .orElseThrow(() -> new NotFoundException("Suggestion not found: " + pastCaseId));
+
+        var planSteps = match.planSteps().stream()
+                             .map(pt -> Map.<String, Object>of(
+                                     "description", pt.capabilityName() + " via " + pt.workerName(),
+                                     "actionType", pt.capabilityName(),
+                                     "parameters", pt.parameters(),
+                                     "priority", pt.priority(),
+                                     "source", "cbr:" + pastCaseId))
+                             .toList();
+
+        context.set("suggestedPlan", planSteps);
+
+        var newAccepted = new java.util.HashSet<>(accepted);
+        newAccepted.add(pastCaseId);
+        context.set("acceptedSuggestions", newAccepted);
+    }
+
+    private Map<String, Object> extractFeatures(CbrConfig config, CaseContext context) {
+        FeatureExtractor extractor = config.featureExtractor();
+        if (extractor instanceof LambdaFeatureExtractor lambda) {
+            return lambda.extract(context);
+        }
+        return Map.of();
+    }
+
 
     public record CaseSummaryResponse(
             UUID caseId,
