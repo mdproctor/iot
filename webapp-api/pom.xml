@@ -50,6 +50,12 @@
             <artifactId>casehub-worker-api</artifactId>
         </dependency>
 
+        <!-- Work API (WorkItemCreator, WorkItemCreateRequest, WorkItemPriority) -->
+        <dependency>
+            <groupId>io.casehub</groupId>
+            <artifactId>casehub-work-api</artifactId>
+        </dependency>
+
         <!-- Connectors (HouseholdNotificationWorkerFunction uses ConnectorService) -->
         <dependency>
             <groupId>io.casehub</groupId>

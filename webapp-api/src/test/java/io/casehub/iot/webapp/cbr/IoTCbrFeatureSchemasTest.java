@@ -20,9 +20,9 @@ class IoTCbrFeatureSchemasTest {
                 IoTCbrFeatureSchemas.hvacAnomaly(),
                 IoTCbrFeatureSchemas.safetyAlert(),
                 IoTCbrFeatureSchemas.securityAlert(),
-                IoTCbrFeatureSchemas.genericResponse()
-        );
-    }
+                IoTCbrFeatureSchemas.genericResponse(),
+                IoTCbrFeatureSchemas.workItemOutcome()
+                        );}
 
     @ParameterizedTest
     @MethodSource("allSchemas")
@@ -73,6 +73,20 @@ class IoTCbrFeatureSchemasTest {
                 .extracting(FeatureField::name)
                 .containsExactlyInAnyOrder(COMMON_FEATURES);
     }
+
+    @Test
+    void workItemOutcome_hasCorrectCaseTypeAndFields() {
+        var schema = IoTCbrFeatureSchemas.workItemOutcome();
+        assertThat(schema.caseType()).isEqualTo("iot-work-item");
+        var fieldNames = schema.fields().stream()
+                               .map(FeatureField::name).toList();
+        assertThat(fieldNames).contains("deviceClass", "roomType", "hourOfDay",
+                                        "dayType", "season", "caseType", "workerName", "priority",
+                                        "candidateGroups");
+        assertThat(fieldNames).doesNotContain("resolutionDurationMinutes",
+                                              "resolvedBy", "terminalStatus");
+    }
+
 
     @Test
     void hvacAnomaly_deviceClassIsCategoricalWithSimilarityTable() {

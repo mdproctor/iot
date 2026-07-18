@@ -35,15 +35,25 @@ public final class IoTCbrFeatureSchemas {
         return new CbrFeatureSchema("generic-response", commonFields());
     }
 
-    private static List<FeatureField> commonFields() {
+    public static CbrFeatureSchema workItemOutcome() {
+        var fields = new ArrayList<>(commonFields());
+        fields.add(FeatureField.categorical("caseType"));
+        fields.add(FeatureField.categorical("workerName"));
+        fields.add(FeatureField.categorical("priority"));
+        fields.add(FeatureField.categorical("candidateGroups"));
+        return new CbrFeatureSchema("iot-work-item", fields);
+    }
+
+
+    static List<FeatureField> commonFields() {
         return List.of(
                 FeatureField.categorical("deviceClass", deviceClassSimilarity()),
                 FeatureField.categorical("roomType", roomTypeSimilarity()),
                 FeatureField.numeric("hourOfDay", 0, 23,
-                        new SimilaritySpec.GaussianDecay(3.0)),
+                                     new SimilaritySpec.GaussianDecay(3.0)),
                 FeatureField.categorical("dayType"),
                 FeatureField.categorical("season", seasonSimilarity())
-        );
+                      );
     }
 
     private static SimilaritySpec deviceClassSimilarity() {

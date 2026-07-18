@@ -8,6 +8,7 @@ import io.casehub.iot.api.spi.DeviceProvider;
 import io.casehub.iot.api.spi.DeviceRegistry;
 import io.casehub.iot.webapp.cbr.IoTCbrFeatureExtractors;
 import io.casehub.iot.webapp.engine.SafetyAlertCaseDescriptor;
+import io.casehub.work.api.spi.WorkItemCreator;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -19,7 +20,10 @@ public class SafetyAlertCaseHub extends YamlCaseHub {
     Instance<DeviceProvider> providers;
 
     @Inject
-    DeviceRegistry registry;
+    DeviceRegistry  registry;
+    @Inject
+    WorkItemCreator workItemCreator;
+
 
     public SafetyAlertCaseHub() {
         super("iot/safety-alert.yaml");
@@ -27,23 +31,23 @@ public class SafetyAlertCaseHub extends YamlCaseHub {
 
     @Override
     protected void augment(final CaseDefinition definition) {
-        final var descriptor = new SafetyAlertCaseDescriptor(providers, registry);
+        final var descriptor = new SafetyAlertCaseDescriptor(providers, registry, workItemCreator);
         descriptor.workers().forEach(definition.getWorkers()::add);
 
         definition.setCbrConfig(CbrConfig.builder()
-                .domain("iot")
-                .caseType(definition.getName())
-                .featureExtractor(IoTCbrFeatureExtractors::extractSafetyAlertFeatures)
-                .weight("deviceClass", 2.0)
-                .weight("alertType", 3.0)
-                .weight("roomType", 1.5)
-                .weight("hourOfDay", 1.0)
-                .weight("dayType", 0.5)
-                .weight("season", 0.5)
-                .topK(5)
-                .minSimilarity(0.3)
-                .vectorWeight(0.0)
-                .timing(CbrRetrievalTiming.PER_EVALUATION)
-                .build());
+                                         .domain("iot")
+                                         .caseType(definition.getName())
+                                         .featureExtractor(IoTCbrFeatureExtractors::extractSafetyAlertFeatures)
+                                         .weight("deviceClass", 2.0)
+                                         .weight("alertType", 3.0)
+                                         .weight("roomType", 1.5)
+                                         .weight("hourOfDay", 1.0)
+                                         .weight("dayType", 0.5)
+                                         .weight("season", 0.5)
+                                         .topK(5)
+                                         .minSimilarity(0.3)
+                                         .vectorWeight(0.0)
+                                         .timing(CbrRetrievalTiming.PER_EVALUATION)
+                                         .build());
     }
 }

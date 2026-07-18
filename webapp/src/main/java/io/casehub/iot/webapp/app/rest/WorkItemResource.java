@@ -1,6 +1,12 @@
 package io.casehub.iot.webapp.app.rest;
 
+import io.casehub.engine.common.spi.cache.CaseInstanceCache;
+import io.casehub.iot.webapp.cbr.WorkItemContext;
+import io.casehub.iot.webapp.cbr.WorkItemFeatureExtractor;
+import io.casehub.iot.webapp.cbr.WorkItemPrediction;
+import io.casehub.iot.webapp.cbr.WorkItemPredictionService;
 import io.casehub.platform.api.identity.CurrentPrincipal;
+import io.casehub.work.runtime.service.WorkItemService;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -43,6 +49,15 @@ public class WorkItemResource {
 
     @Inject
     CurrentPrincipal principal;
+    @Inject
+    WorkItemService  workItemService;
+
+    @Inject
+    WorkItemPredictionService predictionService;
+
+    @Inject
+    CaseInstanceCache caseInstanceCache;
+
 
     /**
      * List pending WorkItems with optional filters.
@@ -56,7 +71,7 @@ public class WorkItemResource {
     public List<WorkItemSummaryResponse> list(
             @QueryParam("status") String status,
             @QueryParam("caseId") UUID caseId
-    ) {
+                                             ) {
         // TODO: Query casehub-work's WorkItemService
         // For now, return empty list until work integration is complete
         return List.of();
@@ -92,11 +107,87 @@ public class WorkItemResource {
     public WorkItemDetailResponse complete(
             @PathParam("workItemId") UUID workItemId,
             CompleteRequest request
-    ) {
+                                          ) {
         // TODO: Call WorkItemService.complete(workItemId, request.outcome(), request.data())
         // Verify tenancy and ownership
         throw new NotFoundException("WorkItem not found: " + workItemId);
     }
+
+    @GET
+    @Path("/{workItemId}/prediction")
+    @RolesAllowed("iot-viewer")
+    public WorkItemPredictionResponse prediction(@PathParam("workItemId") UUID workItemId) {
+        var workItemOpt = workItemService.findById(workItemId);
+        if (workItemOpt.isEmpty()) {
+            throw new NotFoundException("WorkItem not found: " + workItemId);
+        }
+        var workItem = workItemOpt.get();
+        if (!principal.tenancyId().equals(workItem.tenancyId)) {
+            throw new NotFoundException("WorkItem not found: " + workItemId);
+        }
+
+        try {
+            var ctx        = buildPredictionContext(workItem);
+            var features   = WorkItemFeatureExtractor.extractForRetrieve(ctx);
+            var prediction = predictionService.predict(features, principal.tenancyId());
+            return WorkItemPredictionResponse.from(workItemId, prediction);
+        } catch (Exception e) {
+            org.jboss.logging.Logger.getLogger(WorkItemResource.class)
+                                    .warnv(e, "CBR prediction failed for work item {0}", workItemId);
+            return WorkItemPredictionResponse.empty(workItemId);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private WorkItemContext buildPredictionContext(io.casehub.work.runtime.model.WorkItem workItem) {
+        Map<String, Object> payload = Map.of();
+        if (workItem.payload != null && !workItem.payload.isBlank()) {
+            try {
+                payload = new com.fasterxml.jackson.databind.ObjectMapper()
+                                  .readValue(workItem.payload, Map.class);
+            } catch (Exception ignored) {}
+        }
+
+        String deviceClass = (String) payload.get("deviceClass");
+        String roomType    = (String) payload.get("roomType");
+        String caseType    = (String) payload.get("caseType");
+        String workerName  = (String) payload.get("workerName");
+        String eventTs     = (String) payload.get("eventTimestamp");
+
+        if (caseType == null) {
+            var caseOpt = caseInstanceCache.getAll().stream()
+                                           .filter(ci -> principal.tenancyId().equals(ci.tenancyId))
+                                           .filter(ci -> workItem.id.toString().equals(ci.getWaitingForWorkId()))
+                                           .findFirst();
+            if (caseOpt.isPresent()) {
+                var ci = caseOpt.get();
+                caseType = ci.getCaseMetaModel().getName();
+                var working = ci.getCaseContext().layer("working");
+                if (deviceClass == null) {
+                    Object dc = working.get("deviceClass");
+                    if (dc instanceof String s) {deviceClass = s;}
+                }
+                if (roomType == null) {
+                    Object rt = working.get("roomType");
+                    if (rt instanceof String s) {roomType = s;}
+                }
+            }
+        }
+
+        return new WorkItemContext(
+                workItem.title, workItem.description,
+                workItem.types != null
+                ? workItem.types.stream().map(t -> t.path).toList()
+                : java.util.List.of(),
+                workItem.priority != null ? workItem.priority.name() : "MEDIUM",
+                workItem.candidateGroups,
+                workerName != null ? workerName : "unknown",
+                caseType != null ? caseType : "unknown",
+                deviceClass, roomType,
+                eventTs != null ? java.time.Instant.parse(eventTs) : null,
+                null, null, null, null);
+    }
+
 
     public record WorkItemSummaryResponse(
             UUID workItemId,
@@ -129,4 +220,40 @@ public class WorkItemResource {
             Map<String, Object> data
     ) {
     }
+
+    public record WorkItemPredictionResponse(
+            UUID workItemId,
+            Map<String, Double> outcomeDistribution,
+            ResolutionTimeResponse resolutionTime,
+            List<AssigneeSuggestionResponse> suggestedAssignees,
+            double confidence,
+            int sampleSize
+    ) {
+        static WorkItemPredictionResponse from(UUID workItemId, WorkItemPrediction p) {
+            var rt = (p.resolutionTimeP50() != null)
+                     ? new ResolutionTimeResponse(p.resolutionTimeP50().toString(), p.resolutionTimeP90().toString())
+                     : null;
+            var assignees = p.suggestedAssignees().stream()
+                             .map(a -> new AssigneeSuggestionResponse(
+                                     a.assigneeId(), a.successRate(),
+                                     a.avgResolutionTime() != null ? a.avgResolutionTime().toString() : null,
+                                     a.taskCount()))
+                             .toList();
+            return new WorkItemPredictionResponse(
+                    workItemId, p.outcomeDistribution(), rt, assignees,
+                    p.confidence(), p.sampleSize());
+        }
+
+        static WorkItemPredictionResponse empty(UUID workItemId) {
+            return new WorkItemPredictionResponse(
+                    workItemId, Map.of(), null, List.of(), 0.0, 0);
+        }
+
+        public record ResolutionTimeResponse(String p50, String p90) {}
+
+        public record AssigneeSuggestionResponse(
+                String assigneeId, double successRate,
+                String avgResolutionTime, int taskCount) {}
+    }
+
 }

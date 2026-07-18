@@ -18,5 +18,5 @@ public class IoTCbrSchemaRegistration {
         cbrStore.registerSchema(IoTCbrFeatureSchemas.safetyAlert());
         cbrStore.registerSchema(IoTCbrFeatureSchemas.securityAlert());
         cbrStore.registerSchema(IoTCbrFeatureSchemas.genericResponse());
-    }
+        cbrStore.registerSchema(IoTCbrFeatureSchemas.workItemOutcome());}
 }

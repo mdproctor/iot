@@ -8,6 +8,7 @@ import io.casehub.iot.api.spi.DeviceProvider;
 import io.casehub.iot.api.spi.DeviceRegistry;
 import io.casehub.iot.webapp.cbr.IoTCbrFeatureExtractors;
 import io.casehub.iot.webapp.engine.SecurityAlertCaseDescriptor;
+import io.casehub.work.api.spi.WorkItemCreator;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -19,7 +20,10 @@ public class SecurityAlertCaseHub extends YamlCaseHub {
     Instance<DeviceProvider> providers;
 
     @Inject
-    DeviceRegistry registry;
+    DeviceRegistry  registry;
+    @Inject
+    WorkItemCreator workItemCreator;
+
 
     public SecurityAlertCaseHub() {
         super("iot/security-alert.yaml");
@@ -27,23 +31,23 @@ public class SecurityAlertCaseHub extends YamlCaseHub {
 
     @Override
     protected void augment(final CaseDefinition definition) {
-        final var descriptor = new SecurityAlertCaseDescriptor(providers, registry);
+        final var descriptor = new SecurityAlertCaseDescriptor(providers, registry, workItemCreator);
         descriptor.workers().forEach(definition.getWorkers()::add);
 
         definition.setCbrConfig(CbrConfig.builder()
-                .domain("iot")
-                .caseType(definition.getName())
-                .featureExtractor(IoTCbrFeatureExtractors::extractSecurityAlertFeatures)
-                .weight("deviceClass", 2.0)
-                .weight("entryPoint", 1.5)
-                .weight("roomType", 1.5)
-                .weight("hourOfDay", 1.0)
-                .weight("dayType", 0.5)
-                .weight("season", 0.5)
-                .topK(5)
-                .minSimilarity(0.3)
-                .vectorWeight(0.0)
-                .timing(CbrRetrievalTiming.PER_EVALUATION)
-                .build());
+                                         .domain("iot")
+                                         .caseType(definition.getName())
+                                         .featureExtractor(IoTCbrFeatureExtractors::extractSecurityAlertFeatures)
+                                         .weight("deviceClass", 2.0)
+                                         .weight("entryPoint", 1.5)
+                                         .weight("roomType", 1.5)
+                                         .weight("hourOfDay", 1.0)
+                                         .weight("dayType", 0.5)
+                                         .weight("season", 0.5)
+                                         .topK(5)
+                                         .minSimilarity(0.3)
+                                         .vectorWeight(0.0)
+                                         .timing(CbrRetrievalTiming.PER_EVALUATION)
+                                         .build());
     }
 }

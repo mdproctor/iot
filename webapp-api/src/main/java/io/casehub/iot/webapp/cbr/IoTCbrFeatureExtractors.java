@@ -52,10 +52,20 @@ public final class IoTCbrFeatureExtractors {
         deriveTemporalFeatures(features, working);
     }
 
+
+    static void deriveTemporalFeatures(Map<String, Object> features, Instant instant) {
+        if (instant == null) {return;}
+        ZonedDateTime zdt = instant.atZone(ZoneOffset.UTC);
+        features.put("hourOfDay", (double) zdt.getHour());
+        DayOfWeek dow = zdt.getDayOfWeek();
+        features.put("dayType", (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY)
+                                ? "weekend" : "weekday");
+        features.put("season", deriveSeason(zdt.getMonthValue()));
+    }
+
     private static void deriveTemporalFeatures(Map<String, Object> features, ReadableLayer working) {
         Object tsRaw = working.get("eventTimestamp");
-        if (tsRaw == null) return;
-
+        if (tsRaw == null) {return;}
         Instant instant;
         if (tsRaw instanceof Instant i) {
             instant = i;
@@ -64,15 +74,7 @@ public final class IoTCbrFeatureExtractors {
         } else {
             return;
         }
-
-        ZonedDateTime zdt = instant.atZone(ZoneOffset.UTC);
-        features.put("hourOfDay", (double) zdt.getHour());
-
-        DayOfWeek dow = zdt.getDayOfWeek();
-        features.put("dayType", (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY)
-                ? "weekend" : "weekday");
-
-        features.put("season", deriveSeason(zdt.getMonthValue()));
+        deriveTemporalFeatures(features, instant);
     }
 
     private static String deriveSeason(int month) {

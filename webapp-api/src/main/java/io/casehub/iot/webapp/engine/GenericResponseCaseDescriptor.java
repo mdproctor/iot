@@ -1,6 +1,7 @@
 package io.casehub.iot.webapp.engine;
 
 import io.casehub.iot.webapp.worker.HumanDecisionWorkerFunction;
+import io.casehub.work.api.spi.WorkItemCreator;
 import io.casehub.worker.api.Worker;
 
 import java.util.List;
@@ -17,16 +18,22 @@ import java.util.List;
  * hasn't specified automated responses.
  */
 public final class GenericResponseCaseDescriptor {
+    private final WorkItemCreator workItemCreator;
+
+    public GenericResponseCaseDescriptor(final WorkItemCreator workItemCreator) {
+        this.workItemCreator = workItemCreator;
+    }
+
 
     public List<Worker> workers() {
         return List.of(humanTriageWorker());
     }
 
-    private static Worker humanTriageWorker() {
+    private Worker humanTriageWorker() {
         return Worker.builder()
-                .name("human-triage")
-                .capabilityName("human-triage")
-                .function(new HumanDecisionWorkerFunction())
-                .build();
+                     .name("human-triage")
+                     .capabilityName("human-triage")
+                     .function(new HumanDecisionWorkerFunction(workItemCreator))
+                     .build();
     }
 }
