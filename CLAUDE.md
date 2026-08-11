@@ -95,7 +95,7 @@ Protocols shared across all modules live in the **casehub garden** (`../garden/d
 | idea-log | workspace `IDEAS.md` |
 | design-snapshot | workspace `snapshots/` |
 | adr | `docs/adr/` |
-| write-blog | workspace `blog/` |
+| write-blog | project | lands in docs/blog/ — promoted at work end `blog/` |
 
 ## Routing
 
