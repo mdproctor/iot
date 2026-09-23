@@ -43,7 +43,7 @@ import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-@McpDomain(value = "iot/situations", basePath = "/api/situations")
+@McpDomain(value = "iot/situations", app = "iot", basePath = "/api/situations")
 @ApplicationScoped
 public class DefaultIoTSituationApi {
 

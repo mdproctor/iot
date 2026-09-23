@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@McpDomain(value = "iot/workitems", basePath = "/api/workitems")
+@McpDomain(value = "iot/workitems", app = "iot", basePath = "/api/workitems")
 @ApplicationScoped
 public class DefaultIoTWorkItemApi {
 

@@ -34,7 +34,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-@McpDomain(value = "iot/devices", basePath = "/api/devices")
+@McpDomain(value = "iot/devices", app = "iot", basePath = "/api/devices")
 @ApplicationScoped
 public class DefaultIoTDeviceApi {
 
