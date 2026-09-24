@@ -17,7 +17,7 @@ import jakarta.inject.Inject;
 
 import java.util.List;
 
-@McpDomain(value = "iot/kpis", app = "iot", basePath = "/api")
+@McpDomain(value = "iot/kpis", app = "iot", basePath = "/api", summary = "Get device KPI metrics; Get system health KPI metrics")
 @ApplicationScoped
 public class DefaultIoTKpiApi {
 

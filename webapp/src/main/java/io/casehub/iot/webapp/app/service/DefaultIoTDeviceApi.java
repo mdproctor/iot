@@ -34,7 +34,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-@McpDomain(value = "iot/devices", app = "iot", basePath = "/api/devices")
+@McpDomain(value = "iot/devices", app = "iot", basePath = "/api/devices", summary = "IoT device registry — list, query, status, metadata")
 @ApplicationScoped
 public class DefaultIoTDeviceApi {
 

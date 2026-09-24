@@ -25,7 +25,7 @@ import jakarta.ws.rs.NotFoundException;
 import java.time.Instant;
 import java.util.List;
 
-@McpDomain(value = "iot/ops", app = "iot", basePath = "/api")
+@McpDomain(value = "iot/ops", app = "iot", basePath = "/api", summary = "Ops — get, list, query operations")
 @ApplicationScoped
 public class DefaultIoTOperationsApi {
 

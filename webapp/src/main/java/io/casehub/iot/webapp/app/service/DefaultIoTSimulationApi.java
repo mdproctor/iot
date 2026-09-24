@@ -20,7 +20,7 @@ import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
-@McpDomain(value = "iot/simulation", app = "iot", basePath = "/api/simulation")
+@McpDomain(value = "iot/simulation", app = "iot", basePath = "/api/simulation", summary = "IoT simulation — synthetic device and event generation")
 @ApplicationScoped
 public class DefaultIoTSimulationApi {
 

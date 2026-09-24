@@ -42,7 +42,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-@McpDomain(value = "iot/cases", app = "iot", basePath = "/api/cases")
+@McpDomain(value = "iot/cases", app = "iot", basePath = "/api/cases", summary = "IoT case management — create from device events")
 @ApplicationScoped
 public class DefaultIoTCaseApi {
 
