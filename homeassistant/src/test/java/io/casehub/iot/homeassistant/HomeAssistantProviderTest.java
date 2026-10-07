@@ -40,6 +40,10 @@ class HomeAssistantProviderTest {
 
     @Test
     void discoverMapsHaStatesToDeviceEntities() {
+        server().enqueue(StubbedResponse.json(200, "[]"));
+        server().enqueue(StubbedResponse.json(200, "[]"));
+        server().enqueue(StubbedResponse.json(200, "[]"));
+        server().enqueue(StubbedResponse.json(200, "[]"));
         server().enqueue(StubbedResponse.json(200, """
                 [
                   {"entity_id":"light.kitchen","state":"on","last_updated":"2026-06-09T10:00:00Z","last_changed":"2026-06-09T09:55:00Z","attributes":{"friendly_name":"Kitchen Light","brightness":200}},

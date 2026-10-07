@@ -6,6 +6,7 @@ import io.casehub.platform.simulation.TemporalDriverFactory;
 import io.casehub.platform.simulation.TemporalSimulationDriver;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
+import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 
@@ -13,13 +14,16 @@ import jakarta.inject.Inject;
 public class IoTSimulationBeans {
 
     @Inject Event<StateChangeEvent> stateChangeEvents;
-    @Inject SimulationRuntime simulation;
+    @Inject Instance<SimulationRuntime> simulationInstance;
 
     @Produces
     @ApplicationScoped
     public TemporalDriverFactory<StateChangeEvent> iotTemporalDriverFactory() {
-        return () -> new TemporalSimulationDriver<>(
-            (qn, label, event) -> stateChangeEvents.fireAsync(event),
-            simulation);
+        return () -> {
+            SimulationRuntime simulation = simulationInstance.get();
+            return new TemporalSimulationDriver<>(
+                (qn, label, event) -> stateChangeEvents.fireAsync(event),
+                simulation);
+        };
     }
 }

@@ -172,23 +172,19 @@ class WorkItemPredictionServiceTest {
         @Override public void registerSchema(CbrRecordSchema schema) {}
         @Override public String store(CbrRecord c, String ct, String eid,
                 MemoryDomain d, String tid, String cid, Path scope) { return "id"; }
-        @Override public Integer erase(EraseRequest r) { return 0; }
-        @Override public Integer eraseEntity(String eid, String tid) { return 0; }
-        @Override public Integer eraseByScope(Path scope, String tid) { return 0; }
-        @Override public void recordOutcome(String cid, String tid, CbrOutcome o) {}
-        @Override public Integer purge(CbrRetentionPolicy p) { return 0; }
+        @Override public int erase(EraseRequest r) { return 0; }
+        @Override public int eraseEntity(String eid, String tid) { return 0; }
+        @Override public int eraseByScope(Path scope, String tid) { return 0; }
+        @Override public void recordOutcome(String cid, CbrOutcome o, String tid) {}
+        @Override public int purge(CbrRetentionPolicy p) { return 0; }
         @Override public boolean supersede(String cid, String tid, String scid, String r) { return false; }
         @Override public boolean reinstate(String cid, String tid) { return false; }
-        @Override public List<String> findCaseIds(String ct, MemoryDomain d, String tid, Map<String, CbrFilter> f) { return List.of(); }
-        @Override public int supersedeMatching(String ct, MemoryDomain d, String tid, Map<String, CbrFilter> f, String r) { return 0; }
+        @Override public List<String> findCaseIds(MemoryDomain d, String tid, Map<String, CbrFilter> f, String ct) { return List.of(); }
+        @Override public int supersedeMatching(MemoryDomain d, String tid, Map<String, CbrFilter> f, String r, String ct) { return 0; }
         @Override public int supersedeAll(java.util.Collection<String> ids, String tid, String r) { return 0; }
-        @Override public int reinstateMatching(String ct, MemoryDomain d, String tid, Map<String, CbrFilter> f) { return 0; }
+        @Override public int reinstateMatching(MemoryDomain d, String tid, Map<String, CbrFilter> f, String ct) { return 0; }
         @Override public int reinstateAll(java.util.Collection<String> ids, String tid) { return 0; }
-
-        @Override
-        public java.util.List<io.casehub.neocortex.memory.cbr.SupersessionStatus> findSupersededCases(String cid, MemoryDomain d) {return java.util.List.of();}
-
-        @Override
-        public io.casehub.neocortex.memory.cbr.SupersessionStatus getSupersessionStatus(String cid, String tid) {return null;}
+        @Override public java.util.List<io.casehub.neocortex.memory.cbr.SupersessionStatus> findSupersededCases(MemoryDomain d, String tid) { return java.util.List.of(); }
+        @Override public io.casehub.neocortex.memory.cbr.SupersessionStatus getSupersessionStatus(String cid, String tid) { return null; }
     }
 }
