@@ -4,6 +4,7 @@ import io.casehub.iot.api.CommandResult;
 import io.casehub.yaml.plugin.api.Execute;
 import io.casehub.yaml.plugin.api.Optional;
 import io.casehub.yaml.plugin.api.Plugin;
+import io.casehub.yaml.plugin.api.PluginExecutionContext;
 import io.casehub.yaml.plugin.api.Required;
 import io.casehub.yaml.plugin.api.Result;
 
@@ -19,13 +20,16 @@ public record IoTCommandPlugin(
         @Optional String correlationId) {
 
     @Execute
-    public Result run(DeviceCommandDispatcher dispatcher) {
+    public Result run(DeviceCommandDispatcher dispatcher,
+                      PluginExecutionContext executionContext) {
         String corrId = correlationId != null
                 ? correlationId : UUID.randomUUID().toString();
+        String execId = executionContext != null
+                ? executionContext.executionId() : null;
 
         CommandResult result;
         try {
-            result = dispatcher.dispatch(device, action, params, corrId);
+            result = dispatcher.dispatch(device, action, params, corrId, execId);
         } catch (IllegalArgumentException e) {
             return Result.failed(e.getMessage());
         }

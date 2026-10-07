@@ -196,6 +196,44 @@ class DesiredStateDeliveryHandlerTest {
     }
 
     @Test
+    void usesExecutionIdFromDeliveryContext() {
+        DeliveryContext ctxWithId = mock(DeliveryContext.class);
+        when(ctxWithId.executionId()).thenReturn("runtime-exec-id");
+
+        when(actualStateAdapter.readActual(any(), eq(TENANCY_ID)))
+                .thenReturn(new ActualState(Map.of()));
+        when(provisioner.provision(any(), any()))
+                .thenReturn(new ProvisionResult.Success());
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("light-living-1", Map.of("on", false));
+
+        handler.execute("ctx-step", data, ctxWithId);
+
+        assertThat(capturedEvents).isNotEmpty();
+        var start = (PlaybookBindingEvent.StepStart) capturedEvents.get(0);
+        assertThat(start.executionId()).isEqualTo("runtime-exec-id");
+    }
+
+    @Test
+    void fallsBackToUuidWhenContextHasNoExecutionId() {
+        when(actualStateAdapter.readActual(any(), eq(TENANCY_ID)))
+                .thenReturn(new ActualState(Map.of()));
+        when(provisioner.provision(any(), any()))
+                .thenReturn(new ProvisionResult.Success());
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("light-living-1", Map.of("on", false));
+
+        handler.execute("fallback-step", data, CTX);
+
+        assertThat(capturedEvents).isNotEmpty();
+        var start = (PlaybookBindingEvent.StepStart) capturedEvents.get(0);
+        assertThat(start.executionId()).isNotNull();
+        assertThat(start.executionId()).matches("[0-9a-f-]{36}");
+    }
+
+    @Test
     void emitsClearOnReconciliationException() {
         when(actualStateAdapter.readActual(any(), eq(TENANCY_ID)))
                 .thenReturn(new ActualState(Map.of()));

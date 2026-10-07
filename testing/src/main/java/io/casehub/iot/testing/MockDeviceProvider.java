@@ -20,6 +20,7 @@ public class MockDeviceProvider implements DeviceProvider {
     private final List<DeviceCommand> dispatchedCommands = new ArrayList<>();
     private ProviderStatus status = ProviderStatus.CONNECTED;
     private CommandResult dispatchResult = CommandResult.SENT;
+    private RuntimeException dispatchException;
 
     public MockDeviceProvider(String providerId) {
         this.providerId = providerId;
@@ -36,6 +37,9 @@ public class MockDeviceProvider implements DeviceProvider {
     @Override
     public CommandResult dispatch(DeviceCommand command) {
         dispatchedCommands.add(command);
+        if (dispatchException != null) {
+            throw dispatchException;
+        }
         return dispatchResult;
     }
 
@@ -60,6 +64,11 @@ public class MockDeviceProvider implements DeviceProvider {
 
     public void setDispatchResult(CommandResult dispatchResult) {
         this.dispatchResult = dispatchResult;
+        this.dispatchException = null;
+    }
+
+    public void setDispatchException(RuntimeException exception) {
+        this.dispatchException = exception;
     }
 
     public List<DeviceCommand> dispatchedCommands() {

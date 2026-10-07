@@ -88,7 +88,9 @@ public class DesiredStateDeliveryHandler implements DeliveryHandler {
     @Override
     public StepOutcome execute(String stepName, Map<String, Object> data,
                                DeliveryContext ctx) {
-        String   executionId = UUID.randomUUID().toString();
+        String   executionId = ctx.executionId() != null
+                ? ctx.executionId()
+                : UUID.randomUUID().toString();
         IoTGoals goals;
         try {
             goals = resolveGoals(data);
