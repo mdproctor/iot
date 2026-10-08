@@ -2,6 +2,8 @@ package io.casehub.iot.desiredstate;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.casehub.desiredstate.api.RevertMode;
+import io.casehub.iot.api.TriggerSource;
 import io.casehub.yaml.jackson.YamlMappers;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -11,6 +13,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -53,6 +56,53 @@ public class IoTPresetResolver {
         return IoTGoalLoader.mergeGoals(fragments.toArray(IoTGoals[]::new));
     }
 
+    public List<OverrideRule> resolveOverrides(String name) {
+        if (presetDir == null) {
+            return List.of();
+        }
+        Path         presetPath = resolvePresetPath(name);
+        List<String> imports    = parseImports(presetPath);
+
+        LinkedHashMap<String, OverrideRule> merged = new LinkedHashMap<>();
+        for (String importName : imports) {
+            for (OverrideRule r : resolveOverrides(importName)) {
+                merged.put(overrideKey(r), r);
+            }
+        }
+        for (OverrideRule r : parseOverrides(presetPath)) {
+            merged.put(overrideKey(r), r);
+        }
+        return List.copyOf(merged.values());
+    }
+
+    private List<OverrideRule> parseOverrides(Path presetPath) {
+        try {
+            JsonNode root = yamlMapper.readTree(presetPath.toFile());
+            JsonNode overridesNode = root.get("overrides");
+            if (overridesNode == null || !overridesNode.isArray()) {
+                return List.of();
+            }
+            List<OverrideRule> rules = new ArrayList<>();
+            for (JsonNode node : overridesNode) {
+                TriggerSource trigger = TriggerSource.valueOf(node.get("trigger").asText());
+                String source = node.has("source") ? node.get("source").asText() : null;
+                String targets = node.get("targets").asText();
+                JsonNode revertNode = node.get("revert");
+                RevertMode mode = RevertMode.valueOf(revertNode.get("mode").asText());
+                String value = revertNode.has("value") ? revertNode.get("value").asText() : null;
+                rules.add(new OverrideRule(trigger, source, targets, new RevertConfig(mode, value)));
+            }
+            return rules;
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to parse overrides: " + presetPath, e);
+        }
+    }
+
+    private String overrideKey(OverrideRule r) {
+        return r.trigger().name() + ":" + r.targets();
+    }
+
+
     private IoTGoals loadPresetYaml(Path presetPath) {
         try {
             com.fasterxml.jackson.databind.node.ObjectNode root =
@@ -78,7 +128,8 @@ public class IoTPresetResolver {
                 String name = stripExtension(p.getFileName().toString());
                 List<String> imports = parseImports(p);
                 int deviceCount = countDevices(p);
-                result.add(new PresetInfo(name, imports, deviceCount));
+                List<OverrideRule> overrides = parseOverrides(p);
+                result.add(new PresetInfo(name, imports, deviceCount, overrides));
             });
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to list preset directory", e);

@@ -14,6 +14,7 @@ import io.casehub.iot.api.PlaybookBindingEvent;
 import io.casehub.iot.api.spi.DeviceRegistry;
 import io.casehub.iot.desiredstate.IoTActualStateAdapter;
 import io.casehub.iot.desiredstate.IoTDeviceGoal;
+import io.casehub.iot.desiredstate.ActivePresetRegistry;
 import io.casehub.iot.desiredstate.IoTGoalCompiler;
 import io.casehub.iot.desiredstate.IoTGoals;
 import io.casehub.iot.desiredstate.IoTNodeProvisioner;
@@ -42,6 +43,7 @@ public class DesiredStateDeliveryHandler implements DeliveryHandler {
     private final IoTGoalCompiler compiler;
     private final IoTActualStateAdapter actualStateAdapter;
     private final IoTNodeProvisioner provisioner;
+    private final ActivePresetRegistry activePresetRegistry;
     private final String tenancyId;
     private final Consumer<PlaybookBindingEvent> bindingEvent;
 
@@ -57,10 +59,11 @@ public class DesiredStateDeliveryHandler implements DeliveryHandler {
             IoTGoalCompiler compiler,
             IoTActualStateAdapter actualStateAdapter,
             IoTNodeProvisioner provisioner,
+            ActivePresetRegistry activePresetRegistry,
             @ConfigProperty(name = "casehub.iot.tenancy-id") String tenancyId,
             jakarta.enterprise.event.Event<PlaybookBindingEvent> bindingEvent) {
-        this(registry, presetResolver, compiler, actualStateAdapter, provisioner, tenancyId,
-                bindingEvent::fire);
+        this(registry, presetResolver, compiler, actualStateAdapter, provisioner,
+                activePresetRegistry, tenancyId, bindingEvent::fire);
     }
 
     DesiredStateDeliveryHandler(
@@ -69,6 +72,7 @@ public class DesiredStateDeliveryHandler implements DeliveryHandler {
             IoTGoalCompiler compiler,
             IoTActualStateAdapter actualStateAdapter,
             IoTNodeProvisioner provisioner,
+            ActivePresetRegistry activePresetRegistry,
             String tenancyId,
             Consumer<PlaybookBindingEvent> bindingEvent) {
         this.registry = registry;
@@ -76,6 +80,7 @@ public class DesiredStateDeliveryHandler implements DeliveryHandler {
         this.compiler = compiler;
         this.actualStateAdapter = actualStateAdapter;
         this.provisioner = provisioner;
+        this.activePresetRegistry = activePresetRegistry;
         this.tenancyId = tenancyId;
         this.bindingEvent = bindingEvent;
     }
@@ -108,7 +113,10 @@ public class DesiredStateDeliveryHandler implements DeliveryHandler {
     @SuppressWarnings("unchecked")
     private IoTGoals resolveGoals(Map<String, Object> data) {
         if (data.containsKey("preset")) {
-            return presetResolver.resolve((String) data.get("preset"));
+            String presetName = (String) data.get("preset");
+            var overrides = presetResolver.resolveOverrides(presetName);
+            activePresetRegistry.set(tenancyId, presetName, overrides);
+            return presetResolver.resolve(presetName);
         }
 
         List<IoTDeviceGoal> deviceGoals = new ArrayList<>();

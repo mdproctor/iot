@@ -324,6 +324,55 @@ Three datasource layout with Flyway migrations:
 
 ---
 
+## Desired State Architecture
+
+### Desiredstate Module (`casehub-iot-desiredstate`)
+
+Bridges `casehub-desiredstate` runtime to IoT device operations:
+
+- **`IoTGoalCompiler`** -- compiles `IoTGoals` (devices + ordering) into a `DesiredStateGraph`. Two-node model: `PhysicalDeviceSpec` (HumanGating.ALL) + `DeviceConfigSpec` (HumanGating.NONE) per physical device. Non-physical devices get a single config node.
+- **`IoTActualStateAdapter`** -- reads current device state from `DeviceRegistry`, compares against desired via `CapabilityNormalizer`.
+- **`IoTNodeProvisioner`** -- dispatches device commands via `DeviceProvider`.
+- **`IoTDriftPolicy`** -- three-tier drift evaluation: hard constraints (LOCK, CAMERA -- always reconcile), per-device exemptions, per-DeviceClass exemptions. Default class exemptions: LIGHT, THERMOSTAT, FAN, COVER, MEDIA_PLAYER at 30-minute `OnDuration`.
+- **`IoTPresetResolver`** -- loads named preset YAML files from a configurable directory. Handles `import:` composition with last-wins merge. `resolveOverrides()` parses the `overrides:` section for trigger-to-exemption rules.
+- **`TriggerDriftOverrideObserver`** -- CDI async observer that watches `StateChangeEvent` with non-UNKNOWN `TriggerSource`. Matches against the active preset's override rules and proactively grants exemptions via `ExemptionStore` before the reconciliation loop runs. Hard-constrained devices are never exempted.
+- **`ActivePresetRegistry`** -- `ConcurrentHashMap`-backed registry tracking the applied preset (name + override rules) per tenancy. Populated by `DesiredStateDeliveryHandler` and `DefaultIoTPresetApi` on preset apply.
+- **`IoTEventSource`** -- bridges IoT CDI events to the desiredstate `Multi<StateEvent>` stream. Capability changes emit `NodeId.of(deviceId + "-config")`.
+- **`IoTNodeTypes`** -- maps `DeviceClass` to composite `NodeType` values (`device-config/<class>`, `physical-device/<class>`).
+- **`IoTOrderingLoader`** -- loads DeviceClass-level ordering constraints from YAML.
+
+### Preset YAML Format
+
+```yaml
+tenancyId: test-tenant
+import:
+  - base-preset
+devices:
+  - deviceId: light-hallway
+    deviceClass: LIGHT
+    label: Hallway Light
+    config:
+      isOn: false
+ordering:
+  - before: LOCK
+    after: LIGHT
+overrides:
+  - trigger: MOTION
+    source: presence-sensor-1
+    targets: light-hallway
+    revert:
+      mode: DURATION
+      value: 30m
+```
+
+Override rules are active only when their preset is the currently applied preset. `trigger` is a `TriggerSource` enum value. `source` (optional) filters by triggering device. `targets` supports device IDs or location/class paths (e.g. `hallway/LIGHT`). `revert.mode` maps to `RevertCondition` subtypes.
+
+### Scenario Module (`casehub-iot-scenario`)
+
+- **`DesiredStateDeliveryHandler`** -- `DeliveryHandler` SPI implementation for `delivery: desired-state` scenario steps. Compiles goals, runs reconciliation, reports per-device outcomes via `PlaybookBindingEvent`. Populates `ActivePresetRegistry` when applying a preset.
+
+---
+
 ## Testing Infrastructure
 
 ### Mock Providers
@@ -417,7 +466,7 @@ Single root property: `casehub.iot.tenancy-id` (env var `CASEHUB_IOT_TENANCY_ID`
 | Repo | What it uses |
 |------|-------------|
 | `casehub-life` | Device discovery, state events, command dispatch for household automation |
-| `casehub-ops` | IoT desired-state domain implementation |
+| `casehub-ops` | Shared approval infrastructure (`ApprovalEvaluator`, `PlanStore`) |
 
 ---
 

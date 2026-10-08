@@ -11,13 +11,21 @@ public record StateChangeEvent(
     DeviceEntity after,
     Set<String> changedCapabilities,
     Instant occurredAt,
-    String providerId
+    String providerId,
+    TriggerSource triggerSource
 ) {
     public StateChangeEvent {
         Objects.requireNonNull(after, "after");
         changedCapabilities = changedCapabilities == null ? Set.of() : Set.copyOf(changedCapabilities);
         Objects.requireNonNull(occurredAt, "occurredAt");
         Objects.requireNonNull(providerId, "providerId");
+        if (triggerSource == null) triggerSource = TriggerSource.UNKNOWN;
+    }
+
+    public StateChangeEvent(DeviceEntity before, DeviceEntity after,
+                           Set<String> changedCapabilities, Instant occurredAt,
+                           String providerId) {
+        this(before, after, changedCapabilities, occurredAt, providerId, TriggerSource.UNKNOWN);
     }
 
     public static Set<String> deriveChangedCapabilities(

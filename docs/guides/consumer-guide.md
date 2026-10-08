@@ -27,7 +27,7 @@ Consumer-relevant modules -- what to depend on and why:
 | `bridge-server` | `casehub-iot-bridge-server` | Cloud apps consuming remote (bridged) devices. `BridgeDeviceProvider implements DeviceProvider` -- remote devices look local. |
 | `mcp` | `casehub-iot-mcp` | LLM agent device access. Add with `quarkus-mcp-server-http` for `iot_get_devices`, `iot_get_state`, `iot_send_command`, `iot_get_history` tools. |
 | `scenario` | `casehub-iot-scenario` | Scenario orchestration plugins for IoT devices. `iot.command` dispatches device commands, `iot.state` reads device state, `IoTDeviceVariableSource` exposes `${device.*}` in YAML conditions. Add when your app uses the platform YAML scenario engine for device orchestration. |
-| `desiredstate` | `casehub-iot-desiredstate` | Desired state convergence for IoT devices. Compile YAML goals to a `DesiredStateGraph`, compare actual vs desired, dispatch commands to converge. Supports DeviceClass-level ordering constraints (`ordering:` YAML section) — declared once, enforced across all presets. Global constraints via `casehub.iot.ordering.path`. Add when your app manages IoT device configurations declaratively. |
+| `desiredstate` | `casehub-iot-desiredstate` | Desired state convergence for IoT devices. Compile YAML goals to a `DesiredStateGraph`, compare actual vs desired, dispatch commands to converge. Supports DeviceClass-level ordering constraints (`ordering:` YAML section) — declared once, enforced across all presets. Global constraints via `casehub.iot.ordering.path`. Named preset loading with `import:` composition and `overrides:` for trigger-to-exemption rules. `TriggerDriftOverrideObserver` grants drift exemptions on matching trigger events. Add when your app manages IoT device configurations declaratively. |
 | `testing` | `casehub-iot-testing` | Test scope only. `MockDeviceProvider`, `MockDeviceRegistry`, fixture devices (Java + YAML), `StateChangeEventPublisher`. |
 
 ---
@@ -248,6 +248,8 @@ Returns `TopologyResponse` with:
 | `ABSENT` | Expected device missing (NodeStatus.ABSENT) |
 | `UNKNOWN` | State unknown or suspended |
 | `UNMONITORED` | No desired state declared for this device |
+
+`PERMITTED_DRIFT` may be trigger-sourced — when a preset's `overrides:` rule matches a trigger event (e.g. motion sensor), `TriggerDriftOverrideObserver` grants a temporary exemption via `ExemptionStore`. The exemption carries metadata: `trigger` (TriggerSource name), `source` (triggering device ID), `preset` (active preset name), and an expiry timestamp for duration-based reverts.
 
 ### SSE Stream: GET /api/topology/stream
 
@@ -564,6 +566,8 @@ Available paths: `${device.<id>}`, `${device.<id>.capabilities}`, `${device.<id>
 ```
 
 Inline config resolves `deviceClass` and `label` from `DeviceRegistry` at runtime. All inline devices use `physical: false` (configuring existing devices, not provisioning hardware). Unknown device IDs fail the step immediately.
+
+Preset YAML files may include an `overrides:` section declaring trigger-to-exemption bindings — see the contributor guide's "Preset YAML Format" for the full schema. When a preset is applied, its override rules are loaded into `ActivePresetRegistry` and matched against incoming `StateChangeEvent` trigger sources.
 
 Uses one-shot reconciliation (compile → read actual state → plan transitions → provision). Returns `StepOutcome.ok` with `provisioned` count on success. Any device provision failure fails the step with per-device failure details.
 

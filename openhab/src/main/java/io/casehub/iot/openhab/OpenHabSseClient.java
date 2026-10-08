@@ -1,11 +1,13 @@
 package io.casehub.iot.openhab;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.casehub.iot.api.DeviceClass;
 import io.casehub.iot.api.DeviceCommand;
 import io.casehub.iot.api.DeviceEntity;
 import io.casehub.iot.api.ProviderStatus;
 import io.casehub.iot.api.ProviderStatusEvent;
 import io.casehub.iot.api.StateChangeEvent;
+import io.casehub.iot.api.TriggerSource;
 import io.casehub.iot.openhab.internal.OpenHabChannelDto;
 import io.casehub.iot.openhab.internal.OpenHabItemDto;
 import io.casehub.iot.openhab.internal.OpenHabSseEventDto;
@@ -308,7 +310,7 @@ public class OpenHabSseClient {
      * Resolves the target item for a Thing-scoped device command using channel metadata.
      *
      * <p>Maps command actions to channel itemType, filtering STATE channels only.
-     * For turn_on/turn_off, prefers Color &gt; Dimmer &gt; Switch. For set_temperature,
+     * For turn_on/turn_off, prefers Color > Dimmer > Switch. For set_temperature,
      * uses setpoint disambiguation (channelTypeUID or id contains "setpoint", "target",
      * or "desired"). For set_volume, prefers channels with "volume" in channelTypeUID.</p>
      *
@@ -871,6 +873,15 @@ public class OpenHabSseClient {
         return executor.schedule(() -> fireCoalesced(equipmentName), windowMs, TimeUnit.MILLISECONDS);
     }
 
+
+    static TriggerSource classifyTrigger(DeviceClass deviceClass) {
+        if (deviceClass == null) {return TriggerSource.UNKNOWN;}
+        return switch (deviceClass) {
+            case PRESENCE_SENSOR -> TriggerSource.MOTION;
+            default -> TriggerSource.UNKNOWN;
+        };
+    }
+
     private void fireCoalesced(String deviceKey) {
         coalescingTimers.remove(deviceKey);  // Remove timer first — concurrent events now start fresh cycle
         DeviceEntity before = coalescingBefore.remove(deviceKey);
@@ -883,8 +894,9 @@ public class OpenHabSseClient {
             try {
                 Set<String> changedCapabilities = StateChangeEvent.deriveChangedCapabilities(before, after);
                 if (!changedCapabilities.isEmpty()) {
+                    TriggerSource trigger = classifyTrigger(after.deviceClass());
                     stateEvents.fireAsync(new StateChangeEvent(
-                        before, after, changedCapabilities, Instant.now(), "openhab"));
+                        before, after, changedCapabilities, Instant.now(), "openhab", trigger));
                 }
             } catch (Exception e) {
                 LOG.warnf(e, "Failed to fire coalesced state change for %s", deviceKey);

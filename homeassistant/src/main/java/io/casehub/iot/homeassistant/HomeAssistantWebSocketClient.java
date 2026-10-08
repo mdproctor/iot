@@ -7,6 +7,7 @@ import io.casehub.iot.api.DeviceEntity;
 import io.casehub.iot.api.ProviderStatus;
 import io.casehub.iot.api.ProviderStatusEvent;
 import io.casehub.iot.api.StateChangeEvent;
+import io.casehub.iot.api.TriggerSource;
 import io.casehub.iot.homeassistant.internal.HaStateDto;
 import io.quarkus.websockets.next.CloseReason;
 import io.quarkus.websockets.next.OnClose;
@@ -177,6 +178,30 @@ public class HomeAssistantWebSocketClient {
         return conn.sendText(subscribeJson).replaceWithVoid();
     }
 
+
+    static TriggerSource classifyTrigger(JsonNode msg) {
+        JsonNode context = msg.path("event").path("context");
+        if (context.isMissingNode()) {return TriggerSource.UNKNOWN;}
+
+        String userId   = context.path("user_id").textValue();
+        String parentId = context.path("parent_id").textValue();
+
+        if (userId != null && parentId == null) {
+            return TriggerSource.MANUAL;
+        }
+        if (parentId != null) {
+            return TriggerSource.AUTOMATION;
+        }
+
+        JsonNode newState    = msg.path("event").path("data").path("new_state");
+        String   deviceClass = newState.path("attributes").path("device_class").textValue();
+        if ("motion".equals(deviceClass) || "occupancy".equals(deviceClass)) {
+            return TriggerSource.MOTION;
+        }
+
+        return TriggerSource.UNKNOWN;
+    }
+
     private Uni<Void> onStateChanged(JsonNode msg) {
         try {
             JsonNode eventData = msg.path("event").path("data");
@@ -208,8 +233,9 @@ public class HomeAssistantWebSocketClient {
                 }
             }
 
+            TriggerSource trigger = classifyTrigger(msg);
             stateEvents.fireAsync(new StateChangeEvent(before, after, changedCapabilities,
-                Instant.now(), "homeassistant"));
+                Instant.now(), "homeassistant", trigger));
         } catch (Exception e) {
             LOG.warnf(e, "Failed to process state_changed event — ignoring");
         }

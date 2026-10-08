@@ -1,0 +1,26 @@
+tenancyId: test-tenant
+devices:
+  - deviceId: light-hallway
+    deviceClass: LIGHT
+    label: Hallway Light
+    config:
+      isOn: false
+      brightness: 0
+  - deviceId: light-bedroom
+    deviceClass: LIGHT
+    label: Bedroom Light
+    config:
+      isOn: false
+
+overrides:
+  - trigger: MOTION
+    source: presence-sensor-1
+    targets: light-hallway
+    revert:
+      mode: DURATION
+      value: 30m
+  - trigger: MANUAL
+    targets: light-bedroom
+    revert:
+      mode: DURATION
+      value: 60m

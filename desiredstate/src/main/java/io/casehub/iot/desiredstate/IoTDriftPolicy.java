@@ -7,9 +7,8 @@ import io.casehub.desiredstate.api.DriftPolicy;
 import io.casehub.desiredstate.api.ExemptionSpec;
 import io.casehub.desiredstate.api.NodeId;
 import io.casehub.desiredstate.api.NodeStatus;
-import io.casehub.iot.api.DeviceClass;
-
 import io.casehub.desiredstate.api.RevertCondition;
+import io.casehub.iot.api.DeviceClass;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.time.Duration;
@@ -68,6 +67,11 @@ public class IoTDriftPolicy implements DriftPolicy {
         }
         return DriftDecision.reconcile();
     }
+
+    public boolean isHardConstrained(DeviceClass deviceClass) {
+        return hardConstraints.contains(deviceClass);
+    }
+
 
     public static Builder builder() {
         return new Builder();

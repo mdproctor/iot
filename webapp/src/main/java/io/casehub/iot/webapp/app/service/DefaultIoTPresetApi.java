@@ -8,6 +8,7 @@ import io.casehub.desiredstate.api.StepAction;
 import io.casehub.desiredstate.runtime.DefaultDesiredStateGraphFactory;
 import io.casehub.desiredstate.runtime.TransitionPlanner;
 import io.casehub.iot.api.spi.DeviceRegistry;
+import io.casehub.iot.desiredstate.ActivePresetRegistry;
 import io.casehub.iot.desiredstate.IoTActualStateAdapter;
 import io.casehub.iot.desiredstate.IoTGoalCompiler;
 import io.casehub.iot.desiredstate.IoTGoals;
@@ -40,6 +41,7 @@ public class DefaultIoTPresetApi {
     @Inject IoTGoalCompiler compiler;
     @Inject IoTActualStateAdapter actualStateAdapter;
     @Inject IoTNodeProvisioner provisioner;
+    @Inject ActivePresetRegistry activePresetRegistry;
 
     private final DefaultDesiredStateGraphFactory graphFactory = new DefaultDesiredStateGraphFactory();
     private final TransitionPlanner planner = new TransitionPlanner();
@@ -65,6 +67,8 @@ public class DefaultIoTPresetApi {
             @ContextParam("tenancyId") String tenancyId,
             @PathParam("name") String name) {
         IoTGoals goals = resolver.resolve(name);
+        var overrides = resolver.resolveOverrides(name);
+        activePresetRegistry.set(tenancyId, name, overrides);
         var compilationResult = compiler.compile(goals, graphFactory);
         if (!(compilationResult instanceof CompilationResult.SingleGraph sg)) {
             throw new IllegalStateException("Preset compilation produced unexpected result type: "

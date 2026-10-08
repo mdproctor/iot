@@ -62,7 +62,8 @@ class DesiredStateDeliveryHandlerTest {
 
         handler = new DesiredStateDeliveryHandler(
                 registry, presetResolver, compiler,
-                actualStateAdapter, provisioner, TENANCY_ID, capturedEvents::add);
+                actualStateAdapter, provisioner, new io.casehub.iot.desiredstate.ActivePresetRegistry(),
+                TENANCY_ID, capturedEvents::add);
     }
 
     @Test
